@@ -20,7 +20,7 @@ class RetrievalTests(unittest.TestCase):
     def setUpClass(cls):
         cls.records = rag.load_records()
 
-    def test_workshop_query_answer_key(self):
+    def test_sample_query_answer_key(self):
         queries = json.loads((ROOT / 'sample-data/practice-queries.json').read_text())
         for query in queries:
             with self.subTest(question=query['question']):
@@ -132,7 +132,7 @@ class HttpTests(unittest.TestCase):
     def test_page_assets_and_downloads(self):
         for path in ('/', '/app.js', '/styles.css', '/api/health', '/api/records', '/api/prompt',
                      '/sample-data/observations.csv', '/sample-data/observations.json',
-                     '/sample-data/observations.geojson', '/workshop-guide'):
+                     '/sample-data/observations.geojson'):
             with self.subTest(path=path):
                 status, body, headers = self.request(path)
                 self.assertEqual(status, 200)
@@ -140,7 +140,7 @@ class HttpTests(unittest.TestCase):
                 self.assertEqual(headers['X-Content-Type-Options'], 'nosniff')
 
     def test_project_files_are_not_exposed(self):
-        for path in ('/server.py', '/../rag.py', '/.git/config', '/sample-data/../../server.py'):
+        for path in ('/server.py', '/../rag.py', '/.git/config', '/sample-data/../../server.py', '/workshop-guide'):
             self.assertEqual(self.request(path)[0], 404)
 
     def test_complete_answer_over_http(self):

@@ -1,4 +1,4 @@
-# Workshop sample data
+# Space-tech sample data
 
 **All observation values, sensor descriptions, quality labels and environmental
 findings are synthetic.** These records were invented for teaching, not obtained
@@ -52,6 +52,6 @@ population exposure, elevation, rainfall, legal ownership or imagery is included
 
 The purpose is interpreting reference records, not deriving metrics from raw
 pixels. Real remote-sensing processing, calibration, segmentation, image
-classification and spatial calculations are outside this three-hour prototype.
+classification and spatial calculations are outside this starter.
 
 Regenerate with `python3 scripts/generate_data.py` from the project root.

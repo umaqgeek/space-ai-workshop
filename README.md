@@ -1,13 +1,13 @@
-# SpaceLab · AI for Space
+# SpaceLab · Space-tech RAG starter
 
-A small, local geospatial intelligence workshop app for university students and
-graduates. Built around **From Space Data to AI: Build a Geospatial Intelligence
-Assistant**, the supplied three-hour Selangor Education Summit proposal.
+A local geospatial intelligence app for exploring space-tech data with
+retrieval-augmented generation. It includes a searchable synthetic knowledge
+base, source inspection, response downloads and optional local Qwen generation.
 
-## Start in one command
+## Start
 
-Requires Python **3.9 or newer**. The default mode needs no Python packages,
-API keys, model download, internet connection, or Node installation.
+Requires Python **3.9 or newer**. The default excerpt mode needs no additional
+Python packages, API key, model download, internet connection or Node installation.
 
 ```sh
 python3 server.py
@@ -15,113 +15,102 @@ python3 server.py
 
 Open **http://127.0.0.1:8080**. Keep the terminal running; press Ctrl+C to stop.
 On Windows, use `py -3 server.py` if `python3` is unavailable.
-Run the command from this project folder. A different port is supported:
+For a different port, run `python3 server.py --port 8081`.
 
-```sh
-python3 server.py --port 8081
-```
-
-Participants can each run their own copy. Alternatively, on a trusted workshop
-Wi-Fi network, the facilitator can serve one copy:
+To share the app on a trusted local network:
 
 ```sh
 python3 server.py --host 0.0.0.0 --port 8080
 ```
 
-Participants visit `http://<facilitator-LAN-IP>:8080`. Check firewall permissions
-and Wi-Fi client isolation with the venue beforehand. The default remains
-loopback-only. This is a classroom server with no authentication, not an
-internet-facing deployment. Qwen requests run on the facilitator's machine.
-Notebook entries stay in each participant's browser until downloaded; sharing
-the server does not create a central submissions dashboard.
+Other devices visit `http://<server-LAN-IP>:8080`. Check firewall and network
+client-isolation settings. The default binds to loopback only. This development
+server has no authentication and is not intended for public internet hosting.
 
-## What participants can do
+## Features
 
-- Ask natural-language questions and inspect source IDs, values, dates and limits.
-- Explore 22 synthetic records across six Selangor locations and four themes.
-- Inspect a schematic coordinate plot and download CSV, JSON or GeoJSON.
-- Change topic filters, source count and answer style.
-- Compare retrieved excerpts with optional Qwen-generated answers.
-- Complete one of three missions and download a verified-source team notebook.
-- Record a SkillsBuild next step and workshop feedback.
+- **Intelligence assistant:** natural-language questions, topic filters, source
+  count and answer style, with inspectable source IDs, values, dates and limits.
+- **Data explorer:** search records, inspect a schematic coordinate plot, and
+  download the sample corpus as CSV, JSON or GeoJSON.
+- **Response export:** download an answer and its retrieved sources as JSON.
+- **Optional Qwen:** generate cited answers from retrieved records through Ollama.
 
-**Start facilitating with [the segment-by-segment guide](docs/FACILITATOR_GUIDE.md).**
-Hand participants [the short participant guide](docs/PARTICIPANT_GUIDE.md).
+## Optional local Qwen
 
-## Optional: enable real Qwen generation
-
-Install [Ollama](https://ollama.com/download) separately, then download the
-[Qwen3 4B model](https://ollama.com/library/qwen3:4b) before the event:
+Install [Ollama](https://ollama.com/download), then download the model:
 
 ```sh
 ollama pull qwen3:4b
 ollama serve
 ```
 
-If Ollama is already running as a desktop service, a second `ollama serve` is
-unnecessary. In the app, select **Qwen · local Ollama** and ask a question.
-The backend calls [Ollama's `/api/chat` endpoint](https://docs.ollama.com/api/chat),
-using a non-streaming response and the retrieved records as context. No
-participant-side Ollama installation is needed when sharing one server.
+If the Ollama desktop service is already running, skip `ollama serve`. Select
+**Qwen · local Ollama** in the app. Local inference needs no API key. When the
+app is shared, generation runs on the server machine.
 
-Optional backend settings, applied when starting the Python server:
+The backend uses [Ollama's chat endpoint](https://docs.ollama.com/api/chat).
+Configure the model or endpoint when starting the server:
 
 ```sh
 OLLAMA_MODEL=qwen3:4b OLLAMA_URL=http://127.0.0.1:11434 python3 server.py
 ```
 
-The model download is several GB and inference needs suitable memory; rehearse
-on the actual laptop. Qwen requests time out after 60 seconds and fall back to
-clearly labelled excerpts if unavailable or if source citation checks fail.
-Several simultaneous teams can overload one model host; stagger generated
-answers and use offline mode for most exercises.
+The adapter expects Ollama's API format. Changing the endpoint alone does not
+add support for another provider's authentication or API schema. A different
+Ollama model may require adjustments to the `think` option and prompt in `rag.py`.
 
-**Offline mode is lexical retrieval plus deterministic excerpts; it is not an
-LLM.** It teaches search, grounding, provenance and evaluation. To demonstrate
-the complete LLM + RAG pipeline, have Ollama and Qwen running. Actual inference
-depends on that optional local service and is not required to start the app.
+Allow sufficient memory for your selected model. Requests time out after 60
+seconds and fall back to labelled excerpts if the model is unavailable or its
+citations fail validation. Concurrent generation can overload one model host.
+
+**Offline mode is lexical retrieval with deterministic excerpts, not an LLM.**
+It remains available without Ollama or internet access.
 
 ## Architecture
 
 ```text
-Browser question + topic + source count
+Browser question + retrieval settings
           ↓ POST /api/ask
-Python retrieval service (BM25 + explicit place/topic constraints)
+Python retrieval service (BM25 + place/topic constraints)
           ↓
-Prepared synthetic JSON knowledge base
-          ↓ retrieved records
+JSON knowledge base → retrieved reference records
+          ↓
 Excerpt composer OR local Qwen via Ollama
           ↓
-Answer + inspectable source cards → participant verification → JSON evidence
+Answer + inspectable source cards → JSON response export
 ```
 
-Retrieval happens **before** generation. This implements the proposal's LLM,
-RAG service and knowledge base components without training or a vector database.
-The BM25 scores indicate lexical relevance, **not factual confidence**. Search
-supports English and a few explicit Malay topic aliases, not multilingual
-semantic understanding. The diagram in the proposal is conceptual; actual
-grounding requires that retrieved evidence reach the model before it answers.
+Retrieval runs before generation. No model training or vector database is
+required. BM25 scores indicate lexical relevance, not factual confidence.
 
-## Data and modifications
+## Reuse for another space-tech project
 
-The separate [sample-data folder](sample-data/README.md) contains the dataset,
-data dictionary, and practice queries with expected sources. Values and sensor
-descriptions are **invented**, not real satellite products. No satellite imagery,
-live feeds or flood forecasts are included. Place names and approximate
-coordinates anchor the classroom scenarios.
+The separate [sample-data folder](sample-data/README.md) contains 22 invented
+observations across six Selangor locations and four themes. These are example
+inputs, not real satellite measurements or imagery.
 
-Regenerate all three data formats deterministically:
+1. Use `sample-data/observations.json` and its data dictionary as the record
+   schema. The server loads records at startup; restart it after changing data.
+2. Edit `scripts/generate_data.py` and regenerate JSON, CSV and GeoJSON together:
 
-```sh
-python3 scripts/generate_data.py
-```
+   ```sh
+   python3 scripts/generate_data.py
+   ```
 
-For the guided content-edit exercise, change the Klang flood value in
-`scripts/generate_data.py`, regenerate, restart the server and repeat the query.
-The server loads its corpus at startup. Keep JSON, CSV and GeoJSON aligned by
-using the generator. No participant upload or shared data mutation is needed.
-Edit `SYSTEM_PROMPT` in `rag.py` to experiment with Qwen's instructions, then
-restart. Preserve the synthetic-data and citation rules.
+3. Adapt `SYSTEM_PROMPT`, topic aliases and `THEME_TOKENS` in `rag.py` to your
+   domain. Keep the citation and insufficient-evidence rules.
+4. Update validation in `server.py` and the topic dropdowns in `app/index.html`
+   when introducing new themes. Update example questions, dataset statistics,
+   labels and coordinate-plot bounds in `app/index.html` and `app/app.js` for a
+   different region or corpus.
+5. Update practice queries and tests to match the new corpus and expected sources.
+
+The starter currently accepts **synthetic records only**. For actual observations,
+deliberately update validation, provenance handling, prompts, answer disclaimers
+and export metadata; replacing files alone does not support real-data ingestion.
+Current citation validation expects IDs such as `FLOOD-001` (uppercase letters,
+hyphen, three digits). Extend that validation if your IDs use a different format.
 
 ## Checks
 
@@ -131,39 +120,30 @@ node --check app/app.js
 ```
 
 The Python suite covers retrieval constraints, comparisons, missing evidence,
-live-data abstention, Qwen failure/citation handling, data consistency and HTTP
-input validation. Node is needed only for the JavaScript syntax check.
-No live Qwen call is needed in the automated suite.
+live-data abstention, model failure/citation handling, data consistency and HTTP
+input validation. Node is needed only for the JavaScript syntax check. Model
+responses are mocked; the automated suite does not require live Qwen inference.
 
-## Limits and workshop evidence
+## Limits
 
-Qwen citations are checked for existence, not entailment. A cited claim may
-still be wrong; participants must compare it against the source. Lexical
-retrieval may miss paraphrases or retrieve related material for an unsupported
-question. Unknown locations are not automatically geocoded. An answer about
-retrieved places does not establish coverage of another place in the question.
-Top-k retrieval cannot establish a complete regional ranking. Dates do not
-turn fictional observations into live information.
+Citation checks establish that source IDs exist, not that a claim follows from
+them. Verify generated claims against the retrieved records. Lexical retrieval
+may miss paraphrases or return related evidence for an unsupported question.
+English and a few Malay topic aliases are supported; this is not multilingual
+semantic search. Unknown locations are not geocoded, and top-k retrieval cannot
+establish complete regional rankings.
 
-Notebook verification and SkillsBuild progress are self-reported. Feedback is
-not centrally collected. Use downloaded team files and a roster to assess the
-proposal's engagement, learning, activation and feedback indicators; see the
-facilitator guide for denominators and suggested collection steps. No
-registration or course-completion claim is automatically verified.
+The sample corpus cannot establish live conditions or predict events. The
+coordinate plot is a schematic with fixed bounds for the included Selangor data,
+not a geographic basemap or a spatial-analysis engine.
 
 ## Project layout
 
 ```text
 server.py                  HTTP API and static file allowlist
-rag.py                     Retrieval, excerpt answers and optional Qwen adapter
+rag.py                     Retrieval, excerpt answers and optional Ollama adapter
 app/                       HTML, CSS and browser JavaScript
 sample-data/               JSON, CSV, GeoJSON, dictionary and practice queries
 scripts/generate_data.py   Reproducible synthetic data generator
-docs/                      Facilitator and participant guides
 tests/                     Python unit and HTTP integration checks
 ```
-
-Reference links for continued learning: [IBM SkillsBuild for university
-students](https://skillsbuild.org/university/students) and the [university
-learning catalog](https://skillsbuild.org/learning-catalog/university-catalog).
-Links were checked on 28 October 2026; available courses and sign-up flows may change.

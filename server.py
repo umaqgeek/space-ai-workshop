@@ -1,4 +1,4 @@
-"""Dependency-free local workshop server. Python 3.9+."""
+"""Dependency-free local space-tech RAG server. Python 3.9+."""
 import argparse
 import json
 import mimetypes
@@ -34,7 +34,6 @@ class Handler(BaseHTTPRequestHandler):
             return self.respond({'system_prompt': SYSTEM_PROMPT})
         # Explicit allowlist keeps project source and local files off the web server.
         files = {'/': ROOT / 'app/index.html', '/app.js': ROOT / 'app/app.js', '/styles.css': ROOT / 'app/styles.css',
-                 '/workshop-guide': ROOT / 'docs/FACILITATOR_GUIDE.md',
                  '/sample-data/observations.json': ROOT / 'sample-data/observations.json',
                  '/sample-data/observations.csv': ROOT / 'sample-data/observations.csv',
                  '/sample-data/observations.geojson': ROOT / 'sample-data/observations.geojson'}

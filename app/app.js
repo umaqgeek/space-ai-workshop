@@ -1,9 +1,8 @@
 'use strict';
 const $ = id => document.getElementById(id);
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
-const titles = {assistant:'Intelligence assistant', explorer:'Data explorer', mission:'Team mission', guide:'Workshop guide'};
+const titles = {assistant:'Intelligence assistant', explorer:'Data explorer'};
 let records = [], latest = null;
-let storageAvailable = true;
 function showView(view) {
   if (!titles[view]) view = 'assistant';
   document.querySelectorAll('.view').forEach(section => {section.hidden = section.id !== `view-${view}`;});
@@ -34,7 +33,7 @@ function sourceCard(record, inAnswer = false) {
     <dt>Cloud cover</dt><dd>${r.cloud_cover_pct}%${record.theme === 'flood' ? ' (not used for radar; placeholder)' : ''}</dd>
     <dt>Quality</dt><dd>${r.quality}</dd>${inAnswer ? `<dt>BM25 score</dt><dd>${r.retrieval_score} (match strength, not confidence)</dd>` : ''}</dl>
     <p><strong>Limit:</strong> ${r.limitations}</p><p class="muted">Synthetic · ${r.provenance}</p>
-    ${inAnswer ? `<button class="text-button use-source" data-source="${r.id}">Use this source in my notebook ↗</button>` : ''}</details>`;
+    </details>`;
 }
 $('question-form').addEventListener('submit', async event => {
   event.preventDefault();
@@ -50,18 +49,8 @@ $('question-form').addEventListener('submit', async event => {
     $('answer-panel').innerHTML = `<div class="answer-header"><h2>${latest.status === 'matched' ? 'Your evidence-backed response' : 'Evidence is insufficient'}</h2><span class="tag pale">${latest.mode === 'qwen' ? 'QWEN · AI GENERATED' : 'RETRIEVED EXCERPTS'}</span></div>
       ${latest.notice ? `<div class="notice">${escapeHtml(latest.notice)}</div>` : ''}<div class="answer-text">${escapeHtml(latest.answer)}</div>
       <div class="sources-heading">RETRIEVED SOURCES · ${latest.sources.length}</div>${latest.sources.map(r => sourceCard(r, true)).join('')}
-      <div class="answer-actions"><button id="save-answer" class="text-button">Add this question to my notebook ↗</button><button id="export-answer" class="text-button">Download response ↓</button></div>`;
-    $('save-answer').addEventListener('click', () => {
-      $('evidence-question').value = latest.question;
-      persistNotebook(); showView('mission');
-    });
+      <div class="answer-actions"><button id="export-answer" class="text-button">Download response ↓</button></div>`;
     $('export-answer').addEventListener('click', () => download('spacelab-response.json', {...latest, synthetic:true, exported_at:new Date().toISOString()}));
-    document.querySelectorAll('.use-source').forEach(button => button.addEventListener('click', () => {
-      $('verified-source').value = button.dataset.source;
-      $('evidence-question').value = latest.question;
-      $('source-checked').checked = false;
-      persistNotebook(); showView('mission');
-    }));
   } catch (error) {
     $('answer-panel').innerHTML = `<h2>Could not retrieve an answer</h2><p class="error">${escapeHtml(error.message)}</p><p class="muted">Check that the Python server is running, then submit your question again.</p>`;
   } finally {
@@ -95,63 +84,13 @@ function renderExplorer() {
 $('data-search').addEventListener('input',renderExplorer);
 $('data-theme').addEventListener('change',renderExplorer);
 
-const challenges = {
-  flood:{title:'Prepare a classroom flood evidence briefing', question:'Compare flood observations in Klang and Hulu Langat.', tasks:['Retrieve both places. Check the inundated-area value and observation date in each source.','Write two evidence-backed sentences with exact source IDs.','Explain why a radar-like observation cannot predict tomorrow’s flooding.'], expected:['FLOOD-001','FLOOD-005']},
-  vegetation:{title:'Interrogate a vegetation comparison', question:'Compare vegetation in Hulu Langat and Shah Alam.', tasks:['Find the NDVI value for each place and cite both sources.','Explain what the fictional values show, using the same metric.','Explain why NDVI alone cannot establish crop health.'], expected:['VEGETATION-005','VEGETATION-002']},
-  coastal:{title:'Find the edge of the knowledge base', question:'What do coastal observations show in Shah Alam?', tasks:['Ask the question and inspect the lack of matching coastal sources.','Use Data explorer to confirm that Shah Alam has no coastal record.','Try Kuala Selangor instead. Explain why an assistant must not invent the missing record.'], expected:['COASTAL-003']}
-};
-function renderChallenge() {
-  const challenge = challenges[$('challenge').value];
-  $('challenge-details').innerHTML = `<h3>${escapeHtml(challenge.title)}</h3><ol>${challenge.tasks.map(task => `<li>${escapeHtml(task)}</li>`).join('')}</ol>`;
-}
-$('challenge').addEventListener('change',renderChallenge);
-$('try-mission').addEventListener('click', () => { $('topic').value='all'; $('source-count').value='3'; setQuery(challenges[$('challenge').value].question); });
-const notebookFields = ['team-name','evidence-question','finding','verified-source','limitation','learning-step','source-checked','skills-progress','feedback'];
-function notebook() {return Object.fromEntries(notebookFields.map(id => [id, $(id).type === 'checkbox' ? $(id).checked : $(id).value]));}
-function persistNotebook() {
-  try {localStorage.setItem('spacelab-notebook-v1',JSON.stringify(notebook())); $('save-status').textContent='Saved in this browser';}
-  catch {storageAvailable = false; $('save-status').textContent='Browser saving unavailable. Download to keep your work.';}
-}
-notebookFields.forEach(id => $(id).addEventListener('input',persistNotebook));
 function download(name, data) {
   const url = URL.createObjectURL(new Blob([JSON.stringify(data,null,2)+'\n'],{type:'application/json'}));
   const link = document.createElement('a'); link.href=url; link.download=name; link.click();
   setTimeout(() => URL.revokeObjectURL(url),1000);
 }
-$('evidence-form').addEventListener('submit', event => {
-  event.preventDefault();
-  const sourceIds = $('verified-source').value.split(/[,\s]+/).filter(Boolean);
-  if (!sourceIds.length || !sourceIds.every(id => records.some(r => r.id === id))) {
-    $('verified-source').setCustomValidity('Enter valid source IDs from this dataset, separated by commas or spaces.');
-    $('verified-source').reportValidity(); return;
-  }
-  const evidence = {...notebook(), synthetic:true, exported_at:new Date().toISOString(),
-    checked_source_records:records.filter(r => sourceIds.includes(r.id)),
-    assistant_response: latest && latest.question === $('evidence-question').value ? latest : null,
-    verification:'Self-reported by the team. Source existence is checked; the claim has not been automatically graded.'};
-  persistNotebook(); download('spacelab-team-evidence.json',evidence);
-});
-$('verified-source').addEventListener('input', () => $('verified-source').setCustomValidity(''));
-
-const segments = [
-  {time:'0–20 min',title:'AI for space',demo:'Ask about flood observations in Klang. Open FLOOD-001 and connect radar-like observations to monitoring.',activity:'Name two space-data applications and one career beyond engineering.',go:'assistant'},
-  {time:'20–45 min',title:'LLM + RAG essentials',demo:'Walk through the four-step pipeline. Inspect the system prompt. Compare offline excerpts with Qwen if available.',activity:'Explain which component retrieves records and which writes an answer.',go:'assistant'},
-  {time:'45–75 min',title:'Geospatial data',demo:'Open Data explorer. Filter by vegetation, inspect coordinates and NDVI, then download the CSV.',activity:'Find a record’s place, date, metric, quality and limitation.',go:'explorer'},
-  {time:'75–140 min',title:'Guided build and testing',demo:'Compare vegetation in Hulu Langat and Shah Alam. Change source count from 1 to 3 and answer style to Field briefing. Ask about flooding tomorrow.',activity:'Run the starter, test three questions, inspect sources and capture one verified finding.',go:'assistant'},
-  {time:'140–160 min',title:'Mini challenge',demo:'Choose a team mission. Show the evidence notebook and explain the source-check requirement.',activity:'Retrieve evidence, state a limitation and download the team deliverable.',go:'mission'},
-  {time:'160–180 min',title:'SkillsBuild + wrap-up',demo:'Open the university SkillsBuild links below. Find an AI or data learning activity and show how to record a next step.',activity:'Record registration or next-step intent, add feedback and download the final evidence file.',go:'mission'},
-];
-$('segments').innerHTML = segments.map(s => `<article class="card segment"><span class="time">${s.time}</span><div><h2>${s.title}</h2><p><strong>Demo:</strong> ${s.demo}</p><p><strong>Participants:</strong> ${s.activity}</p></div><button class="text-button" data-segment="${s.go}">Open activity ↗</button></article>`).join('');
-document.querySelectorAll('[data-segment]').forEach(b => b.addEventListener('click',()=>showView(b.dataset.segment)));
-
 async function init() {
   showView(location.hash.slice(1) || 'assistant');
-  renderChallenge();
-  try {
-    const saved = JSON.parse(localStorage.getItem('spacelab-notebook-v1') || '{}');
-    notebookFields.forEach(id => {if (Object.hasOwn(saved,id)) {if ($(id).type === 'checkbox') $(id).checked = saved[id] === true; else $(id).value = saved[id];}});
-  } catch {storageAvailable = false;}
-  if (!storageAvailable) $('save-status').textContent='Browser saving unavailable. Download to keep your work.';
   try {
     records = await api('/api/records');
     document.querySelectorAll('.record-count').forEach(el => {el.textContent=records.length;});

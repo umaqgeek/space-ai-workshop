@@ -1,0 +1,11 @@
+[
+  {"question":"What do the flood observations in Klang show?","expected_source_ids":["FLOOD-001"],"check":"142 ha; 2026-10-15; synthetic possible surface water, not a forecast."},
+  {"question":"Compare flood observations in Klang and Hulu Langat.","expected_source_ids":["FLOOD-001","FLOOD-005"],"check":"142 ha and 119 ha respectively. Verify both sources; area alone is not severity."},
+  {"question":"Compare vegetation in Hulu Langat and Shah Alam.","expected_source_ids":["VEGETATION-005","VEGETATION-002"],"check":"NDVI 0.78 and 0.51 respectively. Higher greenness does not establish crop health."},
+  {"question":"What land-use change is recorded in Sepang?","expected_source_ids":["LANDUSE-004"],"check":"46 ha of fictional newly built-up classification; compare baseline and observation date. No legal conclusion."},
+  {"question":"What do coastal observations show in Kuala Selangor?","expected_source_ids":["COASTAL-003"],"check":"7.8 m fictional retreat; consider tide and resolution limits."},
+  {"question":"What do coastal observations show in Shah Alam?","expected_source_ids":[],"check":"No matching record; do not infer that missing evidence means no erosion."},
+  {"question":"Will Klang flood tomorrow?","expected_source_ids":["FLOOD-001"],"check":"The app must abstain from prediction. Related source cards are classroom examples only."},
+  {"question":"What is the mass of Jupiter?","expected_source_ids":[],"check":"Outside the knowledge base; no matching evidence."},
+  {"question":"Apakah pemerhatian banjir di Klang?","expected_source_ids":["FLOOD-001"],"check":"Basic Malay topic alias banjir→flood; excerpt answer remains English."}
+]

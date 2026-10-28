@@ -35,6 +35,43 @@ function sourceCard(record, inAnswer = false) {
     <p><strong>Limit:</strong> ${r.limitations}</p><p class="muted">Synthetic · ${r.provenance}</p>
     </details>`;
 }
+
+function responseContent(result) {
+  // Move only our own presentation wrappers; preserve model prose and citations.
+  const wrappers = [
+    'Synthetic sample data. AI-generated answer; verify claims against the source cards.',
+    'These are synthetic sample observations, not real-world measurements.',
+    'These are retrieved excerpts, not an LLM-generated analysis. Verify each claim against the source cards. Only the displayed records were retrieved; this is not a complete regional ranking.',
+  ];
+  let answer = result.answer;
+  for (const wrapper of wrappers) {
+    if (answer.startsWith(wrapper)) answer = answer.slice(wrapper.length).trim();
+    if (answer.endsWith(wrapper)) answer = answer.slice(0, -wrapper.length).trim();
+  }
+  return answer;
+}
+
+function renderResponse(result) {
+  const generated = result.mode === 'qwen';
+  const title = result.status === 'insufficient' ? 'Insufficient evidence' : generated ? 'AI response' : 'Retrieved excerpts';
+  return `<article class="response-primary" aria-labelledby="response-title">
+      <div class="answer-header"><div><span class="eyebrow">YOUR ANSWER</span><h2 id="response-title">${title}</h2></div><span class="tag response-mode ${generated ? 'generated' : ''}">${generated ? 'AI GENERATED' : 'EXCERPT MODE'}</span></div>
+      <p class="response-question">${escapeHtml(result.question)}</p>
+      <div class="answer-text">${escapeHtml(responseContent(result))}</div>
+      <div class="response-context"><span class="tag">SYNTHETIC DATA</span><span>${result.sources.length} reference${result.sources.length === 1 ? '' : 's'} retrieved</span>${result.notice && result.status === 'matched' ? '<span class="fallback-label">Model unavailable or citation check failed · excerpts shown</span>' : ''}</div>
+    </article>
+    <div class="response-support" aria-label="Answer details">
+      <details class="response-detail"><summary><span>Clarification</span><span class="detail-hint">Mode, coverage and limitations</span></summary><div class="detail-content">
+        ${result.notice ? `<div class="notice">${escapeHtml(result.notice)}</div>` : ''}
+        <p>${generated ? 'The configured Ollama model generated this answer from the retrieved records. Valid source IDs do not guarantee that every claim is supported.' : 'This response contains retrieved excerpts, without LLM-generated analysis.'}</p>
+        <p>All observations are synthetic examples, not real-world measurements. Verify dates, values and limitations against the references. Retrieved records may cover only part of your question; they do not establish a complete regional ranking.</p>
+        </div></details>
+      <details class="response-detail"><summary><span>References <span class="reference-count">${result.sources.length}</span></span><span class="detail-hint">Inspect the source records</span></summary><div class="detail-content">
+        ${result.sources.length ? result.sources.map(r => sourceCard(r, true)).join('') : '<p>No matching reference records were retrieved.</p>'}
+        </div></details>
+      <div class="answer-actions"><button id="export-answer" class="text-button">Download response and references ↓</button></div>
+    </div>`;
+}
 $('question-form').addEventListener('submit', async event => {
   event.preventDefault();
   const question = $('question').value.trim();
@@ -46,13 +83,10 @@ $('question-form').addEventListener('submit', async event => {
   latest = null;
   try {
     latest = await api('/api/ask', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({question, mode:$('engine').value, theme:$('topic').value, top_k:Number($('source-count').value), style:$('style').value})});
-    $('answer-panel').innerHTML = `<div class="answer-header"><h2>${latest.status === 'matched' ? 'Your evidence-backed response' : 'Evidence is insufficient'}</h2><span class="tag pale">${latest.mode === 'qwen' ? 'QWEN · AI GENERATED' : 'RETRIEVED EXCERPTS'}</span></div>
-      ${latest.notice ? `<div class="notice">${escapeHtml(latest.notice)}</div>` : ''}<div class="answer-text">${escapeHtml(latest.answer)}</div>
-      <div class="sources-heading">RETRIEVED SOURCES · ${latest.sources.length}</div>${latest.sources.map(r => sourceCard(r, true)).join('')}
-      <div class="answer-actions"><button id="export-answer" class="text-button">Download response ↓</button></div>`;
+    $('answer-panel').innerHTML = renderResponse(latest);
     $('export-answer').addEventListener('click', () => download('spacelab-response.json', {...latest, synthetic:true, exported_at:new Date().toISOString()}));
   } catch (error) {
-    $('answer-panel').innerHTML = `<h2>Could not retrieve an answer</h2><p class="error">${escapeHtml(error.message)}</p><p class="muted">Check that the Python server is running, then submit your question again.</p>`;
+    $('answer-panel').innerHTML = `<div class="response-primary"><h2>Could not retrieve an answer</h2><p class="error">${escapeHtml(error.message)}</p><p class="muted">Check that the Python server is running, then submit your question again.</p></div>`;
   } finally {
     $('ask-button').disabled = false; $('ask-button').innerHTML = 'Find insights <span>↗</span>';
     $('answer-panel').removeAttribute('aria-busy');
@@ -99,7 +133,7 @@ async function init() {
   } catch (error) {
     $('connection').textContent='Server unavailable';
     $('records-list').textContent=error.message;
-    $('answer-panel').innerHTML='<p class="error">Could not load the dataset. Start the Python server and reload this page.</p>';
+    $('answer-panel').innerHTML='<div class="response-primary"><p class="error">Could not load the dataset. Start the Python server and reload this page.</p></div>';
   }
 }
 init();

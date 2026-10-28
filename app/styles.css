@@ -70,3 +70,32 @@
 #answer-panel{scroll-margin-top:24px}
 #answer-panel:focus-visible{outline:3px solid #74954b;outline-offset:4px}
 @media(max-width:680px){#question{font-size:16px;min-height:50px}#question-hint{font-size:9px;max-width:155px}.question-composer .composer-footer{align-items:center;gap:12px}}
+
+.architecture-overview{grid-template-columns:repeat(3,minmax(0,1fr))}
+.bm25-explainer{border-top:1px solid var(--line);margin-top:22px;padding-top:15px;font-size:12px;color:#53634d}
+.bm25-explainer summary{cursor:pointer;font-size:13px;font-weight:550;color:var(--ink)}
+.bm25-explainer p{max-width:95ch;line-height:1.8}
+.architecture-notes p+p{margin-top:10px}
+@media(max-width:680px){.architecture-overview{grid-template-columns:1fr}}
+
+/* Native disclosure controls keep long architecture diagrams easy to navigate. */
+.architecture-shortcut{appearance:none;text-align:left;background:transparent;border:0;border-left:2px solid #b5c99c;padding:4px 0 4px 17px;border-radius:0 7px 7px 0}
+.architecture-shortcut:hover{background:#eaf0e2}
+.architecture-shortcut-description{display:block;font-size:12px;color:var(--muted);margin-top:9px;line-height:1.6}
+.architecture-section{padding:0;scroll-margin-top:24px}
+.diagram-summary{cursor:pointer;padding:25px;list-style:none;border-radius:var(--radius)}
+.diagram-summary::-webkit-details-marker{display:none}
+.diagram-summary::marker{content:''}
+.diagram-summary:hover{background:#f5f8ef}
+.diagram-summary:focus-visible{outline:3px solid #74954b;outline-offset:3px}
+.diagram-summary h2{display:flex;align-items:center;justify-content:space-between;gap:20px;margin:0;font-weight:550}
+.diagram-summary-copy{display:grid;gap:7px}
+.diagram-summary-title{font-size:24px;letter-spacing:-.6px}
+.diagram-toggle{display:grid;place-items:center;flex-shrink:0;width:29px;height:29px;background:#edf2e5;border-radius:50%;font-size:21px;line-height:1;color:#456840}
+.diagram-toggle::before{content:'+'}
+.architecture-section[open]>.diagram-summary .diagram-toggle::before{content:'−'}
+.architecture-section[open]>.diagram-summary{border-bottom:1px solid var(--line);border-radius:var(--radius) var(--radius) 0 0}
+.diagram-content{padding:20px 25px 25px}
+.diagram-download{display:flex;justify-content:flex-end}
+.diagram-download a{font-size:12px}
+@media(max-width:680px){.diagram-summary{padding:19px}.diagram-summary-title{font-size:21px}.diagram-content{padding:17px 19px 19px}.diagram-summary .eyebrow{font-size:8px}}

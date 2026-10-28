@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 1060" role="img" aria-labelledby="title desc">
+  <title id="title">SpaceLab explained in plain language</title>
+  <desc id="desc">Ask a question in the assistant interface. The RAG service searches a dataset for relevant facts. In AI mode, a large language model such as Gemma or Qwen, reached through Ollama, writes an answer using those facts. Offline mode shows source excerpts without model reasoning. The answer includes references to check. This project stores its dataset in JSON files, not a separate database, and cannot answer questions without evidence or predict live events.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10Z" fill="#50704d"/></marker>
+    <style>
+      text{font-family:system-ui,-apple-system,sans-serif;text-anchor:middle;fill:#243c30}
+      .heading{font-size:22px;font-weight:650}.body{font-size:16px;fill:#53674f}.label{font-size:13px;font-weight:650;letter-spacing:1px;fill:#69825b}
+      .box{fill:white;stroke:#c9d7bf;stroke-width:1.5}.ai{fill:#edf5e2;stroke:#a5c187;stroke-width:1.5}.offline{fill:#fff7e9;stroke:#dfcda9;stroke-width:1.5}.line{fill:none;stroke:#50704d;stroke-width:2;marker-end:url(#arrow)}
+    </style>
+  </defs>
+  <rect width="1100" height="1060" fill="#fafcf7"/>
+  <rect class="box" x="325" y="25" width="450" height="100" rx="16"/>
+  <text class="label" x="550" y="53">01 · YOU ASK</text>
+  <text class="heading" x="550" y="82">Prompt / question</text>
+  <text class="body" x="550" y="109">“What do flood observations in Klang show?”</text>
+  <path class="line" d="M550 125V165"/>
+
+  <rect class="box" x="325" y="165" width="450" height="100" rx="16"/>
+  <text class="label" x="550" y="193">02 · THE FRONT DESK</text>
+  <text class="heading" x="550" y="222">SpaceLab assistant interface</text>
+  <text class="body" x="550" y="249">Passes your question and settings to the service</text>
+  <path class="line" d="M550 265V305"/>
+
+  <rect class="box" x="325" y="305" width="450" height="100" rx="16"/>
+  <text class="label" x="550" y="333">03 · THE RESEARCH ASSISTANT</text>
+  <text class="heading" x="550" y="362">RAG server finds relevant facts</text>
+  <text class="body" x="550" y="389">Matches your place and topic to source records</text>
+  <path class="line" d="M550 405V445"/>
+
+  <rect class="box" x="325" y="445" width="450" height="110" rx="16"/>
+  <text class="label" x="550" y="473">04 · THE REFERENCE SHELF</text>
+  <text class="heading" x="550" y="502">Dataset / database</text>
+  <text class="body" x="550" y="528">This project: synthetic records in a JSON file</text>
+  <text class="body" x="550" y="548">The service selects the matching records</text>
+  <path class="line" d="M550 555V597H290V645"/>
+  <path class="line" d="M550 555V597H810V645"/>
+  <text class="label" x="290" y="624">AI MODE</text>
+  <text class="label" x="810" y="624">OFFLINE MODE</text>
+
+  <rect class="ai" x="65" y="645" width="450" height="160" rx="16"/>
+  <text class="label" x="290" y="675">05 · THE WRITER</text>
+  <text class="heading" x="290" y="708">Ollama → Gemma / Qwen LLM</text>
+  <text class="body" x="290" y="739">The configured AI model writes an answer</text>
+  <text class="body" x="290" y="763">using your question and the selected facts.</text>
+  <text class="body" x="290" y="787">Available models depend on the endpoint.</text>
+
+  <rect class="offline" x="585" y="645" width="450" height="160" rx="16"/>
+  <text class="label" x="810" y="675">05 · THE EXCERPT READER</text>
+  <text class="heading" x="810" y="708">Show matching source excerpts</text>
+  <text class="body" x="810" y="739">No AI model call or generated analysis.</text>
+  <text class="body" x="810" y="763">Limited to the text in the selected records.</text>
+  <text class="body" x="810" y="787">Also used if AI fails its response checks.</text>
+  <path class="line" d="M290 805V850H460V890"/>
+  <path class="line" d="M810 805V850H640V890"/>
+
+  <rect class="box" x="325" y="890" width="450" height="110" rx="16"/>
+  <text class="label" x="550" y="918">06 · YOU CHECK</text>
+  <text class="heading" x="550" y="948">Response answer + references</text>
+  <text class="body" x="550" y="977">Read the answer and verify it against its sources.</text>
+  <text class="body" x="550" y="1034">No evidence? Say so. These sample records cannot show live conditions or forecast events.</text>
+</svg>

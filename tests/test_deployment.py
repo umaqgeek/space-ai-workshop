@@ -32,6 +32,7 @@ class WsgiTests(unittest.TestCase):
     def test_wsgi_serves_assets_api_and_downloads(self):
         for path in ('/', '/app.js', '/styles.css', '/api/health', '/api/records',
                      '/diagrams/architecture.svg', '/diagrams/process-flow.svg',
+                     '/diagrams/plain-language-flow.svg',
                      '/api/prompt', '/sample-data/observations.json',
                      '/sample-data/observations.csv', '/sample-data/observations.geojson'):
             with self.subTest(path=path):

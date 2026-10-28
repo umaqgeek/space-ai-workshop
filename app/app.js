@@ -15,6 +15,12 @@ function showView(view) {
   window.scrollTo({top:0, behavior:'instant'});
 }
 document.querySelectorAll('[data-view], [data-go]').forEach(button => button.addEventListener('click', () => showView(button.dataset.view || button.dataset.go)));
+document.querySelectorAll('[data-architecture-target]').forEach(button => button.addEventListener('click', () => {
+  const section = $(button.dataset.architectureTarget);
+  section.open = true;
+  section.querySelector('summary').focus({preventScroll:true});
+  section.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block:'start'});
+}));
 function resizeQuestion() {
   const field = $('question');
   field.style.height = 'auto';

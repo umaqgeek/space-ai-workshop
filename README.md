@@ -42,7 +42,8 @@ server has no authentication and is not intended for public internet hosting.
   download the sample corpus as CSV, JSON or GeoJSON.
 - **Response export:** download an answer and its retrieved sources as JSON.
 - **Architecture:** view the system architecture and request process flow, with
-  downloadable SVG diagrams covering deployment, retrieval and model fallback.
+  downloadable SVG diagrams covering deployment, retrieval and model fallback,
+  plus a plain-language diagram and BM25 learning links.
 - **Optional Qwen:** generate cited answers from retrieved records through Ollama.
 
 ## Optional local Qwen

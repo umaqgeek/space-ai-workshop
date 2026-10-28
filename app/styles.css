@@ -39,3 +39,34 @@
   .response-support{padding:0 19px 19px}
   .response-detail .detail-hint{display:block;margin:3px 0 0 16px}
 }
+
+/* Architecture reference page. Diagrams are local SVGs and work offline. */
+.architecture-overview{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:25px}
+.architecture-overview>div{border-left:2px solid #b5c99c;padding:4px 0 4px 17px}
+.architecture-overview p{font-size:12px;color:var(--muted);margin:9px 0 0}
+.diagram-card{margin-bottom:25px}
+.diagram-heading{display:flex;align-items:center;justify-content:space-between;gap:20px}
+.diagram-heading h2{font-size:24px;margin:7px 0 0}
+.diagram-heading>a{white-space:nowrap;font-size:12px}
+.diagram-figure{margin:24px 0}
+.diagram-scroll{overflow-x:auto;background:#fafcf7;border:1px solid var(--line);border-radius:12px;overscroll-behavior-x:contain}
+.diagram-scroll:focus-visible{outline:3px solid #74954b;outline-offset:3px}
+.diagram-scroll img{display:block;width:100%;min-width:850px;height:auto}
+.diagram-figure figcaption{font-size:11px;color:var(--muted);margin-top:12px;line-height:1.8}
+.architecture-notes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px;border-top:1px solid var(--line);padding-top:18px}
+.architecture-notes h3{font-size:13px;font-weight:600;margin:0 0 7px}
+.architecture-notes p{font-size:12px;color:var(--muted);margin:0;line-height:1.8}
+@media(max-width:950px){.architecture-notes{grid-template-columns:1fr;gap:17px}}
+@media(max-width:680px){.architecture-overview{grid-template-columns:1fr;gap:16px}.diagram-heading{align-items:flex-start;flex-direction:column;gap:12px}.diagram-heading h2{font-size:22px}.diagram-scroll img{min-width:850px}}
+
+/* Compact chat composer with retrieval settings above the question. */
+.ask-card .settings{margin:0 0 16px}
+.question-composer{border:1px solid #dce3d9;border-radius:14px;background:#f5f7f2;overflow:hidden}
+.question-composer:focus-within{border-color:#6d8d5c;box-shadow:0 0 0 3px #b7cb9630}
+#question{height:48px;min-height:48px;max-height:140px;padding:13px 16px;font-size:14px;line-height:1.5;resize:none;overflow-y:hidden;border-radius:0}
+#question:focus{box-shadow:none}
+.question-composer .composer-footer{border-radius:0;padding:7px 10px 10px}
+#question-hint{font-size:10px;max-width:none}
+#answer-panel{scroll-margin-top:24px}
+#answer-panel:focus-visible{outline:3px solid #74954b;outline-offset:4px}
+@media(max-width:680px){#question{font-size:16px;min-height:50px}#question-hint{font-size:9px;max-width:155px}.question-composer .composer-footer{align-items:center;gap:12px}}

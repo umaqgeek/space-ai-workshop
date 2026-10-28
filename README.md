@@ -10,7 +10,7 @@ Ollama-compatible endpoint when running on Heroku.
 
 ## Start
 
-Requires Python **3.9 or newer**. The default excerpt mode needs no additional
+Requires Python **3.9 or newer**. The offline excerpt mode needs no additional
 Python packages, API key, model download, internet connection or Node installation.
 
 ```sh
@@ -18,6 +18,9 @@ python3 server.py
 ```
 
 Open **http://127.0.0.1:8080**. Keep the terminal running; press Ctrl+C to stop.
+The assistant initially selects **AI Ollama**. Choose **Offline · retrieved
+excerpts** to use retrieval without a model connection. Press Enter to submit
+a question or Shift+Enter for a new line; the Find insights button also submits.
 On Windows, use `py -3 server.py` if `python3` is unavailable.
 For a different port, run `python3 server.py --port 8081`.
 
@@ -38,6 +41,8 @@ server has no authentication and is not intended for public internet hosting.
 - **Data explorer:** search records, inspect a schematic coordinate plot, and
   download the sample corpus as CSV, JSON or GeoJSON.
 - **Response export:** download an answer and its retrieved sources as JSON.
+- **Architecture:** view the system architecture and request process flow, with
+  downloadable SVG diagrams covering deployment, retrieval and model fallback.
 - **Optional Qwen:** generate cited answers from retrieved records through Ollama.
 
 ## Optional local Qwen

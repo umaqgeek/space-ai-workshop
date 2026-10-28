@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 1140" role="img" aria-labelledby="title desc">
+  <title id="title">SpaceLab system architecture</title>
+  <desc id="desc">A browser uses a Python app served locally or on Heroku. Shared routes call BM25 retrieval over bundled synthetic records loaded into memory. Answers use deterministic excerpts or an optional Ollama-compatible model service. Only the Python backend reads model credentials. Answers and source records return to the browser for verification and JSON download.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10Z" fill="#50704d"/></marker>
+    <style>
+      text{font-family:system-ui,-apple-system,sans-serif;fill:#243c30}
+      .heading{font-size:21px;font-weight:650}.body{font-size:16px;fill:#53674f}.label{font-size:12px;letter-spacing:1.5px;font-weight:650;fill:#69825b}.code{font-family:monospace;font-size:14px;fill:#53674f}
+      .box{fill:white;stroke:#c9d7bf;stroke-width:1.5}.zone{fill:#f2f6ec;stroke:#d1ddc7;stroke-width:1.5;stroke-dasharray:6 5}.line{fill:none;stroke:#50704d;stroke-width:2;marker-end:url(#arrow)}.optional{stroke-dasharray:7 5}
+    </style>
+  </defs>
+  <rect width="1100" height="1140" fill="#fafcf7"/>
+  <rect class="box" x="70" y="35" width="960" height="140" rx="15"/>
+  <text class="label" x="95" y="65">BROWSER · HTML / CSS / JAVASCRIPT</text>
+  <text class="heading" x="95" y="98">Intelligence assistant · Data explorer · Architecture</text>
+  <text class="body" x="95" y="128">Question + mode + topic + source count + answer style</text>
+  <text class="code" x="95" y="153">app/index.html · app/app.js · app/styles.css</text>
+
+  <rect class="zone" x="70" y="225" width="620" height="195" rx="15"/>
+  <text class="label" x="95" y="255">APPLICATION HOST · CHOOSE ONE DEPLOYMENT</text>
+  <rect class="box" x="95" y="277" width="265" height="110" rx="10"/>
+  <text class="heading" x="115" y="308">Local Python server</text>
+  <text class="code" x="115" y="337">python3 server.py</text>
+  <text class="body" x="115" y="364">127.0.0.1:8080</text>
+  <rect class="box" x="390" y="277" width="275" height="110" rx="10"/>
+  <text class="heading" x="410" y="308">Heroku web dyno</text>
+  <text class="code" x="410" y="337">Procfile → Gunicorn</text>
+  <text class="body" x="410" y="364">Heroku router → $PORT</text>
+  <path class="line" d="M227 175V277"/>
+  <path class="line" d="M527 175V277"/>
+  <text class="body" x="240" y="210">HTTP</text>
+  <text class="body" x="540" y="210">HTTPS</text>
+
+  <rect class="box" x="140" y="465" width="480" height="125" rx="13"/>
+  <text class="label" x="165" y="495">SHARED PYTHON BACKEND · webapp.py</text>
+  <text class="heading" x="165" y="526">WSGI routes + input validation</text>
+  <text class="code" x="165" y="552">POST /api/ask · GET /api/records</text>
+  <text class="code" x="165" y="576">GET /api/prompt · /api/health · static files</text>
+  <path class="line" d="M227 387V440H300V465"/>
+  <path class="line" d="M527 387V440H460V465"/>
+
+  <rect class="zone" x="740" y="225" width="290" height="495" rx="15"/>
+  <text class="label" x="760" y="255">BUNDLED KNOWLEDGE BASE</text>
+  <rect class="box" x="760" y="278" width="250" height="100" rx="10"/>
+  <text class="heading" x="780" y="309">Synthetic generator</text>
+  <text class="code" x="780" y="337">scripts/generate_data.py</text>
+  <text class="body" x="780" y="362">Run before app startup</text>
+  <path class="line" d="M885 378V418"/>
+  <rect class="box" x="760" y="418" width="250" height="120" rx="10"/>
+  <text class="heading" x="780" y="450">sample-data/</text>
+  <text class="code" x="780" y="479">observations.json</text>
+  <text class="body" x="780" y="504">22 records · 4 themes</text>
+  <text class="body" x="780" y="525">CSV + GeoJSON exports</text>
+  <path class="line" d="M885 538V587"/>
+  <text class="body" x="775" y="570">load_records() at startup</text>
+  <rect class="box" x="760" y="587" width="250" height="104" rx="10"/>
+  <text class="heading" x="780" y="619">In-memory records</text>
+  <text class="body" x="780" y="647">Validated synthetic corpus</text>
+  <text class="body" x="780" y="673">Reload by restarting the app</text>
+
+  <rect class="box" x="140" y="640" width="480" height="105" rx="13"/>
+  <text class="label" x="165" y="670">RETRIEVAL + ANSWER LOGIC · rag.py</text>
+  <text class="heading" x="165" y="700">Place / topic filters → BM25 → top-k</text>
+  <text class="body" x="165" y="727">Evidence checks and response-mode selection</text>
+  <path class="line" d="M380 590V640"/>
+  <path class="line" d="M760 650H690V695H620"/>
+  <text class="body" x="636" y="629">Corpus</text>
+
+  <rect class="box" x="70" y="805" width="300" height="115" rx="13"/>
+  <text class="label" x="95" y="836">EXCERPT MODE / FALLBACK</text>
+  <text class="heading" x="95" y="867">Excerpt composer</text>
+  <text class="body" x="95" y="895">Deterministic cited source text</text>
+  <path class="line" d="M270 745V775H220V805"/>
+  <rect class="box" x="480" y="805" width="550" height="115" rx="13"/>
+  <text class="label" x="505" y="836">OPTIONAL AI GENERATION · /api/chat</text>
+  <text class="heading" x="505" y="867">Python adapter → Ollama-compatible model</text>
+  <text class="body" x="505" y="895">Local Ollama OR HTTPS cloud service (e.g. Ollama Cloud)</text>
+  <path class="line optional" d="M490 745V775H755V805"/>
+  <text class="body" x="497" y="767">System prompt + question + retrieved records</text>
+  <path class="line optional" d="M480 869H370"/>
+  <text class="body" x="378" y="848">Fallback</text>
+  <text class="code" x="480" y="946">OLLAMA_URL · OLLAMA_MODEL</text>
+  <text class="code" x="480" y="970">OLLAMA_API_KEY · OLLAMA_TIMEOUT_SECONDS</text>
+  <text class="body" x="480" y="994">Model credentials stay on the backend.</text>
+
+  <rect class="box" x="140" y="1015" width="790" height="90" rx="13"/>
+  <text class="heading" x="165" y="1047">JSON response → browser → source verification / download</text>
+  <text class="body" x="165" y="1078">answer + sources + actual mode + status + notice; citation IDs checked for AI output</text>
+  <path class="line" d="M220 920V1015"/>
+  <path class="line" d="M1030 860H1060V1060H930"/>
+</svg>

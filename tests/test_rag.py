@@ -134,6 +134,7 @@ class HttpTests(unittest.TestCase):
 
     def test_page_assets_and_downloads(self):
         for path in ('/', '/app.js', '/styles.css', '/api/health', '/api/records', '/api/prompt',
+                     '/diagrams/architecture.svg', '/diagrams/process-flow.svg',
                      '/sample-data/observations.csv', '/sample-data/observations.json',
                      '/sample-data/observations.geojson'):
             with self.subTest(path=path):

@@ -1,7 +1,7 @@
 'use strict';
 const $ = id => document.getElementById(id);
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
-const titles = {assistant:'Intelligence assistant', explorer:'Data explorer'};
+const titles = {assistant:'Intelligence assistant', explorer:'Data explorer', architecture:'Architecture'};
 let records = [], latest = null;
 function showView(view) {
   if (!titles[view]) view = 'assistant';
@@ -15,7 +15,13 @@ function showView(view) {
   window.scrollTo({top:0, behavior:'instant'});
 }
 document.querySelectorAll('[data-view], [data-go]').forEach(button => button.addEventListener('click', () => showView(button.dataset.view || button.dataset.go)));
-function setQuery(question) {showView('assistant'); $('question').value = question; $('question').focus();}
+function resizeQuestion() {
+  const field = $('question');
+  field.style.height = 'auto';
+  field.style.height = `${Math.min(field.scrollHeight, 140)}px`;
+  field.style.overflowY = field.scrollHeight > 140 ? 'auto' : 'hidden';
+}
+function setQuery(question) {showView('assistant'); $('question').value = question; $('question').setCustomValidity(''); resizeQuestion(); $('question').focus();}
 document.querySelectorAll('[data-query]').forEach(button => button.addEventListener('click', () => setQuery(button.dataset.query)));
 
 async function api(path, options) {
@@ -74,6 +80,7 @@ function renderResponse(result) {
 }
 $('question-form').addEventListener('submit', async event => {
   event.preventDefault();
+  if ($('ask-button').disabled) return;
   const question = $('question').value.trim();
   if (question.length < 3) {$('question').setCustomValidity('Please enter at least 3 characters.'); $('question').reportValidity(); return;}
   $('ask-button').disabled = true;
@@ -90,9 +97,19 @@ $('question-form').addEventListener('submit', async event => {
   } finally {
     $('ask-button').disabled = false; $('ask-button').innerHTML = 'Find insights <span>↗</span>';
     $('answer-panel').removeAttribute('aria-busy');
+    if (!$('view-assistant').hidden) {
+      $('answer-panel').focus({preventScroll:true});
+      $('answer-panel').scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block:'start'});
+    }
   }
 });
-$('question').addEventListener('input', () => $('question').setCustomValidity(''));
+$('question').addEventListener('input', () => { $('question').setCustomValidity(''); resizeQuestion(); });
+$('question').addEventListener('keydown', event => {
+  if (event.key === 'Enter' && !event.shiftKey && !event.isComposing && event.keyCode !== 229) {
+    event.preventDefault();
+    if (!$('ask-button').disabled) $('question-form').requestSubmit();
+  }
+});
 $('show-prompt').addEventListener('click', async () => {
   const output = $('prompt-content');
   if (!output.hidden) {output.hidden = true; return;}
@@ -125,10 +142,11 @@ function download(name, data) {
 }
 async function init() {
   showView(location.hash.slice(1) || 'assistant');
+  resizeQuestion();
   try {
     records = await api('/api/records');
     document.querySelectorAll('.record-count').forEach(el => {el.textContent=records.length;});
-    $('connection').textContent='Offline mode ready';
+    $('connection').textContent='Dataset ready';
     renderExplorer();
   } catch (error) {
     $('connection').textContent='Server unavailable';

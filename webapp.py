@@ -38,6 +38,8 @@ class Request:
             return self.respond({'system_prompt': SYSTEM_PROMPT})
         # Explicit allowlist keeps project source and local files off the web server.
         files = {'/': ROOT / 'app/index.html', '/app.js': ROOT / 'app/app.js', '/styles.css': ROOT / 'app/styles.css',
+                 '/diagrams/architecture.svg': ROOT / 'app/diagrams/architecture.svg',
+                 '/diagrams/process-flow.svg': ROOT / 'app/diagrams/process-flow.svg',
                  '/sample-data/observations.json': ROOT / 'sample-data/observations.json',
                  '/sample-data/observations.csv': ROOT / 'sample-data/observations.csv',
                  '/sample-data/observations.geojson': ROOT / 'sample-data/observations.geojson'}

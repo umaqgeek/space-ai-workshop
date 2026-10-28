@@ -104,8 +104,17 @@ def ask(question, records, mode='offline', theme='all', top_k=3, style='concise'
                    'options': {'temperature': 0.1, 'num_predict': 700}}
         url = os.environ.get('OLLAMA_URL', 'http://127.0.0.1:11434').rstrip('/') + '/api/chat'
         try:
-            request = urllib.request.Request(url, data=json.dumps(payload).encode(), headers={'Content-Type': 'application/json'})
-            with urllib.request.urlopen(request, timeout=60) as response:
+            headers = {'Content-Type': 'application/json'}
+            api_key = os.environ.get('OLLAMA_API_KEY')
+            if api_key:
+                if not url.startswith('https://'):
+                    raise ValueError('Authenticated model endpoints must use HTTPS.')
+                headers['Authorization'] = f'Bearer {api_key}'
+            timeout = float(os.environ.get('OLLAMA_TIMEOUT_SECONDS', '20' if os.environ.get('DYNO') else '60'))
+            if not 0 < timeout <= 60:
+                raise ValueError('Model timeout must be greater than zero and at most 60 seconds.')
+            request = urllib.request.Request(url, data=json.dumps(payload).encode(), headers=headers)
+            with urllib.request.urlopen(request, timeout=timeout) as response:
                 generated = json.load(response)['message']['content'].strip()
             generated = re.sub(r'<think>.*?</think>', '', generated, flags=re.S).strip()
             citations = set(re.findall(r'\[([A-Z]+-\d{3})\]', generated))

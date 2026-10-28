@@ -42,7 +42,7 @@ $('question-form').addEventListener('submit', async event => {
   $('ask-button').disabled = true;
   $('ask-button').textContent = 'Retrieving…';
   $('answer-panel').setAttribute('aria-busy','true');
-  $('answer-panel').innerHTML = '<div class="loading">Retrieving source records… Qwen may take up to 60 seconds.</div>';
+  $('answer-panel').innerHTML = '<div class="loading">Retrieving source records and preparing your answer…</div>';
   latest = null;
   try {
     latest = await api('/api/ask', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({question, mode:$('engine').value, theme:$('topic').value, top_k:Number($('source-count').value), style:$('style').value})});

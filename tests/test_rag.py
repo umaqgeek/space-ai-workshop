@@ -127,7 +127,10 @@ class HttpTests(unittest.TestCase):
             with urllib.request.urlopen(request, timeout=5) as response:
                 return response.status, response.read(), response.headers
         except urllib.error.HTTPError as response:
-            return response.code, response.read(), response.headers
+            try:
+                return response.code, response.read(), response.headers
+            finally:
+                response.close()
 
     def test_page_assets_and_downloads(self):
         for path in ('/', '/app.js', '/styles.css', '/api/health', '/api/records', '/api/prompt',

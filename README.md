@@ -4,6 +4,10 @@ A local geospatial intelligence app for exploring space-tech data with
 retrieval-augmented generation. It includes a searchable synthetic knowledge
 base, source inspection, response downloads and optional local Qwen generation.
 
+For hosting, follow the [Heroku deployment plan](docs/HEROKU.md). The app includes
+a Gunicorn production entry point; local Ollama must be replaced with a hosted
+Ollama-compatible endpoint when running on Heroku.
+
 ## Start
 
 Requires Python **3.9 or newer**. The default excerpt mode needs no additional
@@ -46,7 +50,7 @@ ollama serve
 ```
 
 If the Ollama desktop service is already running, skip `ollama serve`. Select
-**Qwen · local Ollama** in the app. Local inference needs no API key. When the
+**Qwen · Ollama** in the app. Local inference needs no API key. When the
 app is shared, generation runs on the server machine.
 
 The backend uses [Ollama's chat endpoint](https://docs.ollama.com/api/chat).
@@ -60,8 +64,8 @@ The adapter expects Ollama's API format. Changing the endpoint alone does not
 add support for another provider's authentication or API schema. A different
 Ollama model may require adjustments to the `think` option and prompt in `rag.py`.
 
-Allow sufficient memory for your selected model. Requests time out after 60
-seconds and fall back to labelled excerpts if the model is unavailable or its
+Allow sufficient memory for your selected model. The model socket timeout is 60
+seconds locally and 20 seconds on Heroku. Requests fall back to labelled excerpts if the model is unavailable or its
 citations fail validation. Concurrent generation can overload one model host.
 
 **Offline mode is lexical retrieval with deterministic excerpts, not an LLM.**
@@ -100,7 +104,7 @@ inputs, not real satellite measurements or imagery.
 
 3. Adapt `SYSTEM_PROMPT`, topic aliases and `THEME_TOKENS` in `rag.py` to your
    domain. Keep the citation and insufficient-evidence rules.
-4. Update validation in `server.py` and the topic dropdowns in `app/index.html`
+4. Update validation in `webapp.py` and the topic dropdowns in `app/index.html`
    when introducing new themes. Update example questions, dataset statistics,
    labels and coordinate-plot bounds in `app/index.html` and `app/app.js` for a
    different region or corpus.
@@ -140,10 +144,14 @@ not a geographic basemap or a spatial-analysis engine.
 ## Project layout
 
 ```text
-server.py                  HTTP API and static file allowlist
+server.py                  Dependency-free local development server
+webapp.py                  Shared HTTP routes and production WSGI entry point
+Procfile                   Heroku web process using Gunicorn
+requirements.txt           Production server dependency
 rag.py                     Retrieval, excerpt answers and optional Ollama adapter
 app/                       HTML, CSS and browser JavaScript
 sample-data/               JSON, CSV, GeoJSON, dictionary and practice queries
 scripts/generate_data.py   Reproducible synthetic data generator
 tests/                     Python unit and HTTP integration checks
+docs/HEROKU.md             Deployment plan and Cloudflare connector removal
 ```

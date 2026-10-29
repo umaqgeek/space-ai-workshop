@@ -64,12 +64,9 @@ class Request:
             if not isinstance(question, str) or not 3 <= len(question.strip()) <= 1000:
                 raise ValueError('Enter a question between 3 and 1000 characters.')
             mode, theme, style = data.get('mode', 'offline'), data.get('theme', 'all'), data.get('style', 'concise')
-            top_k = data.get('top_k', 3)
             if mode not in ('offline', 'qwen') or theme not in ('all', 'flood', 'vegetation', 'land-use', 'coastal') or style not in ('concise', 'briefing'):
                 raise ValueError('Invalid mode, topic or answer style.')
-            if type(top_k) is not int or not 1 <= top_k <= 6:
-                raise ValueError('Source count must be an integer from 1 to 6.')
-            result = ask(question.strip(), RECORDS, mode, theme, top_k, style)
+            result = ask(question.strip(), RECORDS, mode, theme, style)
             result['question'] = question.strip()
             return self.respond(result)
         except (ValueError, TypeError, UnicodeDecodeError) as exc:

@@ -43,13 +43,13 @@ function sourceCard(record, inAnswer = false) {
     <dt>Baseline date</dt><dd>${r.baseline_date || 'Not applicable'}</dd><dt>Coordinates</dt><dd>${r.latitude}° N, ${r.longitude}° E</dd>
     <dt>Sensor example</dt><dd>${r.sensor}</dd><dt>Metric</dt><dd>${r.metric}: <strong>${r.value} ${r.unit}</strong></dd>
     <dt>Cloud cover</dt><dd>${r.cloud_cover_pct}%${record.theme === 'flood' ? ' (not used for radar; placeholder)' : ''}</dd>
-    <dt>Quality</dt><dd>${r.quality}</dd>${inAnswer ? `<dt>BM25 score</dt><dd>${r.retrieval_score} (match strength, not confidence)</dd>` : ''}</dl>
+    <dt>Quality</dt><dd>${r.quality}</dd>${inAnswer ? `<dt>Selection</dt><dd>${record.retrieval_score === undefined ? 'Dataset query' : `BM25 score: ${r.retrieval_score} (match strength, not confidence)`}</dd>` : ''}</dl>
     <p><strong>Limit:</strong> ${r.limitations}</p><p class="muted">Synthetic · ${r.provenance}</p>
     </details>`;
 }
 
 function responseContent(result) {
-  // Remove presentation wrappers while keeping the reference footer below the prose.
+  // References are displayed separately in the collapsible source section.
   const wrappers = [
     'Synthetic sample data. AI-generated answer; verify claims against the source cards.',
     'These are synthetic sample observations, not real-world measurements.',
@@ -61,14 +61,15 @@ function responseContent(result) {
     if (answer.startsWith(wrapper)) answer = answer.slice(wrapper.length).trim();
     if (answer.endsWith(wrapper)) answer = answer.slice(0, -wrapper.length).trim();
   }
-  return refs ? `${answer}\n\n${refs[1]}` : answer;
+  return answer;
 }
 
 function renderResponse(result) {
   const generated = result.mode === 'qwen';
-  const title = result.status === 'insufficient' ? 'Insufficient evidence' : generated ? 'AI response' : 'Retrieved excerpts';
+  const computed = result.mode === 'data';
+  const title = result.status === 'insufficient' ? 'Insufficient evidence' : generated ? 'AI response' : computed ? 'Dataset results' : 'Retrieved excerpts';
   return `<article class="response-primary" aria-labelledby="response-title">
-      <div class="answer-header"><div><span class="eyebrow">YOUR ANSWER</span><h2 id="response-title">${title}</h2></div><span class="tag response-mode ${generated ? 'generated' : ''}">${generated ? 'AI GENERATED' : 'EXCERPT MODE'}</span></div>
+      <div class="answer-header"><div><span class="eyebrow">YOUR ANSWER</span><h2 id="response-title">${title}</h2></div><span class="tag response-mode ${generated ? 'generated' : ''}">${generated ? 'AI GENERATED' : computed ? 'DATASET RESULTS' : 'EXCERPT MODE'}</span></div>
       <p class="response-question">${escapeHtml(result.question)}</p>
       <div class="answer-text">${escapeHtml(responseContent(result))}</div>
       <div class="response-context"><span class="tag">SYNTHETIC DATA</span><span>${result.sources.length} reference${result.sources.length === 1 ? '' : 's'} retrieved</span>${result.notice && result.status === 'matched' ? '<span class="fallback-label">Model unavailable or citation check failed · excerpts shown</span>' : ''}</div>
@@ -76,8 +77,8 @@ function renderResponse(result) {
     <div class="response-support" aria-label="Answer details">
       <details class="response-detail"><summary><span>Clarification</span><span class="detail-hint">Mode, coverage and limitations</span></summary><div class="detail-content">
         ${result.notice ? `<div class="notice">${escapeHtml(result.notice)}</div>` : ''}
-        <p>${generated ? 'The configured Ollama model generated this answer from the retrieved records. Valid source IDs do not guarantee that every claim is supported.' : 'This response contains retrieved excerpts, without LLM-generated analysis.'}</p>
-        <p>All observations are synthetic examples, not real-world measurements. Verify dates, values and limitations against the references. Retrieved records may cover only part of your question; they do not establish a complete regional ranking.</p>
+        <p>${generated ? 'The configured Ollama model generated this answer from the retrieved records. Valid source IDs do not guarantee that every claim is supported.' : computed ? 'This response was computed directly from all matching dataset records. Rankings use numeric metric values.' : 'This response contains retrieved excerpts, without LLM-generated analysis.'}</p>
+        <p>All observations are synthetic examples, not real-world measurements. Verify dates, values and limitations against the references. Results describe the bundled sample dataset; they do not establish real-world conditions or a complete ranking of Malaysia.</p>
         </div></details>
       <details class="response-detail"><summary><span>References <span class="reference-count">${result.sources.length}</span></span><span class="detail-hint">Inspect the source records</span></summary><div class="detail-content">
         ${result.sources.length ? result.sources.map(r => sourceCard(r, true)).join('') : '<p>No matching reference records were retrieved.</p>'}
@@ -96,7 +97,7 @@ $('question-form').addEventListener('submit', async event => {
   $('answer-panel').innerHTML = '<div class="loading">Retrieving source records and preparing your answer…</div>';
   latest = null;
   try {
-    latest = await api('/api/ask', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({question, mode:$('engine').value, theme:$('topic').value, top_k:Number($('source-count').value), style:$('style').value})});
+    latest = await api('/api/ask', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({question, mode:$('engine').value, theme:$('topic').value, style:$('style').value})});
     $('answer-panel').innerHTML = renderResponse(latest);
     $('export-answer').addEventListener('click', () => download('spacelab-response.json', {...latest, synthetic:true, exported_at:new Date().toISOString()}));
   } catch (error) {

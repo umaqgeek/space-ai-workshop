@@ -41,7 +41,7 @@ class RetrievalTests(unittest.TestCase):
     def test_state_queries_only_retrieve_that_state(self):
         for state, count in [('Selangor', 6), ('Sabah', 3), ('Sarawak', 2), ('Perak', 2)]:
             with self.subTest(state=state):
-                sources = rag.retrieve(f'flood observations in {state}', self.records, top_k=6)
+                sources = rag.retrieve(f'flood observations in {state}', self.records)
                 self.assertEqual(len(sources), count)
                 self.assertTrue(all(r['state'] == state for r in sources))
 
@@ -51,12 +51,49 @@ class RetrievalTests(unittest.TestCase):
         self.assertTrue(all(r['theme'] == 'vegetation' for r in sources))
 
     def test_place_names_require_whole_words(self):
-        sources = rag.retrieve('flood observations in Miriaman', self.records, top_k=6)
+        sources = rag.retrieve('flood observations in Miriaman', self.records)
         self.assertGreater(len({r['location'] for r in sources}), 1)
 
-    def test_top_k_limits_evidence(self):
-        self.assertEqual(len(rag.retrieve('flood', self.records, top_k=1)), 1)
-        self.assertEqual(len(rag.retrieve('flood', self.records, top_k=6)), 6)
+    def test_default_retrieval_has_no_source_cap(self):
+        self.assertEqual(len(rag.retrieve('flood', self.records)), 28)
+
+    def test_nationwide_top_five_are_computed_from_all_records(self):
+        question = 'from all data, list top 5 worst flood in Malaysia, including all states'
+        with patch('rag.urllib.request.urlopen') as call:
+            result = rag.ask(question, self.records, mode='qwen')
+        call.assert_not_called()
+        self.assertEqual(result['mode'], 'data')
+        self.assertEqual([r['id'] for r in result['sources']],
+                         ['FLOOD-024', 'FLOOD-018', 'FLOOD-012', 'FLOOD-023', 'FLOOD-017'])
+        self.assertEqual([r['value'] for r in result['sources']], [221, 219, 217, 184, 182])
+        self.assertIn('not overall flood severity', result['answer'])
+        self.assertNotIn('Refs:', result['answer'].split('\n\nRefs: ')[0])
+
+    def test_ranking_filters_and_direction(self):
+        result = rag.ask('bottom 2 flood observations in Sabah', self.records)
+        self.assertEqual([r['value'] for r in result['sources']], [149, 184])
+        self.assertTrue(all(r['state'] == 'Sabah' for r in result['sources']))
+        result = rag.ask('highest NDVI in Malaysia', self.records)
+        self.assertEqual(result['sources'][0]['value'], max(r['value'] for r in self.records if r['theme'] == 'vegetation'))
+
+    def test_list_all_returns_every_matching_record_without_llm(self):
+        with patch('rag.urllib.request.urlopen') as call:
+            result = rag.ask('List all flood observations', self.records, mode='qwen')
+        call.assert_not_called()
+        self.assertEqual(len(result['sources']), 28)
+        self.assertEqual(len(rag.citation_ids(result['answer'])), 28)
+        self.assertIn('28.', result['answer'])
+        self.assertEqual(len(rag.ask('List all observations', self.records)['sources']), 103)
+        self.assertEqual(len(rag.ask('Compare Kuching and Kota Kinabalu', self.records)['sources']), 7)
+
+    def test_ambiguous_rankings_and_missing_data(self):
+        self.assertEqual(rag.ask('top 5 observations', self.records)['status'], 'insufficient')
+        self.assertEqual(rag.ask('list all moons of Jupiter', self.records)['sources'], [])
+        result = rag.ask('top 50 flood observations in Sabah', self.records)
+        self.assertEqual(len(result['sources']), 3)
+        self.assertIn('Only 3 matching observations', result['answer'])
+        result = rag.ask('top 5 coastal observations in Shah Alam', self.records)
+        self.assertEqual(result['status'], 'insufficient')
 
     def test_forecasts_are_not_sent_to_llm(self):
         with patch('rag.urllib.request.urlopen') as call:
@@ -241,10 +278,13 @@ class HttpTests(unittest.TestCase):
         self.assertEqual(result['sources'][0]['id'], 'FLOOD-001')
         self.assertIn('142', result['answer'])
 
+    def test_api_has_no_legacy_source_cap(self):
+        status, body, _ = self.request('/api/ask', json.dumps({'question': 'list all flood observations', 'top_k': 3}).encode())
+        self.assertEqual(status, 200)
+        self.assertEqual(len(json.loads(body)['sources']), 28)
+
     def test_bad_inputs_return_client_errors(self):
         payloads = [b'{', b'[]', b'null', b'\xff', b'{}', b'{"question":3}',
-                    json.dumps({'question':'flood', 'top_k':True}).encode(),
-                    json.dumps({'question':'flood', 'top_k':7}).encode(),
                     json.dumps({'question':'flood', 'mode':'remote'}).encode(),
                     json.dumps({'question':'flood', 'theme':'rainfall'}).encode(),
                     json.dumps({'question':'flood', 'style':'invent'}).encode(),

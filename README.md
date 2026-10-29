@@ -36,8 +36,9 @@ server has no authentication and is not intended for public internet hosting.
 
 ## Features
 
-- **Intelligence assistant:** natural-language questions, topic filters, source
-  count and answer style, with inspectable source IDs, values, dates and limits.
+- **Intelligence assistant:** natural-language questions, topic filters, automatic
+  evidence selection and answer style, with inspectable source IDs, values, dates
+  and limits.
 - **Data explorer:** search records, inspect a schematic coordinate plot, and
   download the sample corpus as CSV, JSON or GeoJSON.
 - **Response export:** download an answer and its retrieved sources as JSON.
@@ -45,6 +46,13 @@ server has no authentication and is not intended for public internet hosting.
   downloadable SVG diagrams covering deployment, retrieval and model fallback,
   plus a plain-language diagram and BM25 learning links.
 - **Optional Qwen:** generate cited answers from retrieved records through Ollama.
+
+Numeric ranking questions (for example, “top 5 worst flood in Malaysia”) sort
+all matching records by their metric before selecting the requested results.
+Flood rankings use inundated area, not overall severity. “List all flood
+observations” returns every matching record. These results are computed in
+Python, including when AI Ollama is selected. Other questions send all matching
+retrieved evidence to the model; there is no fixed source-count cap.
 
 ## Optional local Qwen
 
@@ -140,8 +148,8 @@ Citation checks establish that source IDs exist, not that a claim follows from
 them. Verify generated claims against the retrieved records. Lexical retrieval
 may miss paraphrases or return related evidence for an unsupported question.
 English and a few Malay topic aliases are supported; this is not multilingual
-semantic search. Unknown locations are not geocoded, and top-k retrieval cannot
-establish complete regional rankings.
+semantic search. Unknown locations are not geocoded. Numeric rankings cover
+matching records in the bundled dataset, not every real-world location.
 
 The sample corpus cannot establish live conditions or predict events. The
 coordinate plot uses separate schematic panels for Peninsular and East Malaysia,

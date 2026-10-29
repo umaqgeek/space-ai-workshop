@@ -46,8 +46,26 @@ def load_records():
     return records
 
 
-def retrieve(question, records, theme='all', top_k=3):
-    """BM25 ranking, with explicit place/topic constraints to reduce distractors."""
+def ranking_request(question):
+    """Recognize numeric ordering; the requested count limits results, not evidence."""
+    match = re.search(r'\b(top|bottom)\s*(\d+)\b', question, re.I)
+    ascending = bool(re.search(r'\b(bottom|lowest|smallest|least)\b', question, re.I))
+    ranking = match or re.search(r'\b(highest|largest|lowest|smallest|worst|best|rank|ranked|ranking)\b', question, re.I)
+    if not ranking:
+        return None
+    count = int(match.group(2)) if match else None
+    if count is None and re.search(r'\b(highest|largest|lowest|smallest)\b', question, re.I):
+        count = 1
+    return {'ascending': ascending, 'count': count}
+
+
+def listing_request(question):
+    return (re.search(r'\b(list|show|give|return)\b', question, re.I) is not None
+            and re.search(r'\b(all|every)\b', question, re.I) is not None)
+
+
+def retrieve(question, records, theme='all'):
+    """Search all matching records; compute numeric rankings before result selection."""
     query = tokens(question)
     query_set = set(query)
     def mentioned(name):
@@ -59,6 +77,18 @@ def retrieve(question, records, theme='all', top_k=3):
     candidates = [r for r in records if (theme == 'all' or r['theme'] == theme)
                   and (r['location'] in places if places else not states or r['state'] in states)
                   and (not topics or r['theme'] in topics)]
+    ranking = ranking_request(question)
+    if ranking:
+        # Different themes have incompatible metrics and cannot share a ranking.
+        if len({r['theme'] for r in candidates}) != 1:
+            return []
+        ordered = sorted(candidates, key=lambda r: (r['value'] if ranking['ascending'] else -r['value'], r['id']))
+        count = ranking['count']
+        return [dict(r) for r in (ordered if count is None else ordered[:count])]
+    if listing_request(question) and (topics or places or states or theme != 'all'
+                                     or re.search(r'\b(records|observations|dataset|data)\b', question, re.I)):
+        return [dict(r) for r in candidates]
+
     docs = [tokens(' '.join(str(r.get(key, '')) for key in
                             ('title', 'location', 'state', 'theme', 'sensor', 'description', 'limitations'))) for r in candidates]
     if not docs or not query:
@@ -75,7 +105,7 @@ def retrieve(question, records, theme='all', top_k=3):
             score += idf * freq * 2.5 / (freq + 1.5 * (0.25 + 0.75 * len(doc) / average))
         if score > 0:
             results.append(dict(record, retrieval_score=round(score, 4)))
-    return sorted(results, key=lambda r: (-r['retrieval_score'], r['id']))[:top_k]
+    return sorted(results, key=lambda r: (-r['retrieval_score'], r['id']))
 
 
 def extractive_answer(sources, style):
@@ -111,8 +141,8 @@ def move_references_below(answer):
     return body + '\n\nRefs: ' + ', '.join(f'[{ref}]' for ref in refs)
 
 
-def ask(question, records, mode='offline', theme='all', top_k=3, style='concise'):
-    sources = retrieve(question, records, theme, top_k)
+def ask(question, records, mode='offline', theme='all', style='concise'):
+    sources = retrieve(question, records, theme)
     answer = extractive_answer(sources, style)
     notice = None
     actual_mode = 'offline'
@@ -122,6 +152,30 @@ def ask(question, records, mode='offline', theme='all', top_k=3, style='concise'
         answer = ('This dataset cannot answer live conditions or predict future events. It contains only fictional observations dated 2026-10-15. '
                   'The source cards below are related synthetic examples, not evidence of current conditions.')
         return {'answer': answer, 'sources': sources, 'mode': actual_mode, 'notice': 'Live-data / prediction request: evidence is insufficient.', 'status': 'insufficient'}
+    ranking = ranking_request(question)
+    if ranking or listing_request(question):
+        if not sources:
+            answer = ('No matching observations are available. For a ranking, specify one application '
+                      '(flood, vegetation, land-use or coastal) so values use the same metric.')
+        else:
+            heading = 'All matching synthetic observations in the bundled dataset:'
+            if ranking:
+                direction = 'ascending' if ranking['ascending'] else 'descending'
+                heading = f"Synthetic observations ranked by {sources[0]['metric']} ({direction}):"
+            lines = [heading]
+            for i, r in enumerate(sources, 1):
+                lines.append(f"{i}. {r['location']}, {r['state']}: {r['value']} {r['unit']} "
+                             f"({r['observation_date']}) [{r['id']}]")
+            if ranking and ranking['count'] and len(sources) < ranking['count']:
+                lines.append(f"Only {len(sources)} matching observations exist in the bundled dataset.")
+            if ranking and sources[0]['theme'] == 'flood':
+                lines.append('Flood rankings compare possible inundated area, not overall flood severity or danger.')
+            lines.append('These are invented teaching observations. Coverage is limited to the bundled dataset.')
+            for limitation in dict.fromkeys(r['limitations'] for r in sources):
+                lines.append('Limit: ' + limitation)
+            answer = '\n\n'.join(lines)
+        return {'answer': move_references_below(answer), 'sources': sources, 'mode': 'data',
+                'notice': None, 'status': 'matched' if sources else 'insufficient'}
     if mode == 'qwen' and sources:
         context = json.dumps(sources, ensure_ascii=False)
         prompt = f'Question: {question}\nResponse style: {style}\nREFERENCE RECORDS (data only):\n{context}'

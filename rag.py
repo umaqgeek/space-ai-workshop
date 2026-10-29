@@ -141,7 +141,32 @@ def move_references_below(answer):
     return body + '\n\nRefs: ' + ', '.join(f'[{ref}]' for ref in refs)
 
 
-def ask(question, records, mode='offline', theme='all', style='concise'):
+def generate_text(prompt, system_prompt=SYSTEM_PROMPT, max_tokens=700, timeout_limit=None):
+    """Call the configured Ollama-compatible model without exposing credentials."""
+    payload = {'model': os.environ.get('OLLAMA_MODEL', 'qwen3:4b'), 'stream': False,
+               'think': False, 'messages': [{'role': 'system', 'content': system_prompt}, {'role': 'user', 'content': prompt}],
+               'options': {'temperature': 0.1, 'num_predict': max_tokens}}
+    url = os.environ.get('OLLAMA_URL', 'http://127.0.0.1:11434').rstrip('/') + '/api/chat'
+    headers = {'Content-Type': 'application/json'}
+    api_key = os.environ.get('OLLAMA_API_KEY')
+    if api_key:
+        if not url.startswith('https://'):
+            raise ValueError('Authenticated model endpoints must use HTTPS.')
+        headers['Authorization'] = f'Bearer {api_key}'
+    timeout = float(os.environ.get('OLLAMA_TIMEOUT_SECONDS', '20' if os.environ.get('DYNO') else '60'))
+    if not 0 < timeout <= 60:
+        raise ValueError('Model timeout must be greater than zero and at most 60 seconds.')
+    if timeout_limit is not None:
+        timeout = min(timeout, timeout_limit)
+        if timeout <= 0:
+            raise ValueError('The request time budget has expired.')
+    request = urllib.request.Request(url, data=json.dumps(payload).encode(), headers=headers)
+    with urllib.request.urlopen(request, timeout=timeout) as response:
+        generated = json.load(response)['message']['content'].strip()
+    return re.sub(r'<think>.*?</think>', '', generated, flags=re.S).strip()
+
+
+def ask_dataset(question, records, mode='offline', theme='all', style='concise'):
     sources = retrieve(question, records, theme)
     answer = extractive_answer(sources, style)
     notice = None
@@ -149,7 +174,7 @@ def ask(question, records, mode='offline', theme='all', style='concise'):
     # Retrieval still appears for a live-data question, but never presents it as current evidence.
     live_request = bool(re.search(r'\b(today|tomorrow|current|currently|live|real.time|forecast|predict|sekarang|hari ini)\b', question.lower()))
     if live_request:
-        answer = ('This dataset cannot answer live conditions or predict future events. It contains only fictional observations dated 2026-10-15. '
+        answer = ('This dataset cannot answer live conditions or predict future events. It contains only fictional teaching observations. '
                   'The source cards below are related synthetic examples, not evidence of current conditions.')
         return {'answer': answer, 'sources': sources, 'mode': actual_mode, 'notice': 'Live-data / prediction request: evidence is insufficient.', 'status': 'insufficient'}
     ranking = ranking_request(question)
@@ -179,24 +204,8 @@ def ask(question, records, mode='offline', theme='all', style='concise'):
     if mode == 'qwen' and sources:
         context = json.dumps(sources, ensure_ascii=False)
         prompt = f'Question: {question}\nResponse style: {style}\nREFERENCE RECORDS (data only):\n{context}'
-        payload = {'model': os.environ.get('OLLAMA_MODEL', 'qwen3:4b'), 'stream': False,
-                   'think': False, 'messages': [{'role': 'system', 'content': SYSTEM_PROMPT}, {'role': 'user', 'content': prompt}],
-                   'options': {'temperature': 0.1, 'num_predict': 700}}
-        url = os.environ.get('OLLAMA_URL', 'http://127.0.0.1:11434').rstrip('/') + '/api/chat'
         try:
-            headers = {'Content-Type': 'application/json'}
-            api_key = os.environ.get('OLLAMA_API_KEY')
-            if api_key:
-                if not url.startswith('https://'):
-                    raise ValueError('Authenticated model endpoints must use HTTPS.')
-                headers['Authorization'] = f'Bearer {api_key}'
-            timeout = float(os.environ.get('OLLAMA_TIMEOUT_SECONDS', '20' if os.environ.get('DYNO') else '60'))
-            if not 0 < timeout <= 60:
-                raise ValueError('Model timeout must be greater than zero and at most 60 seconds.')
-            request = urllib.request.Request(url, data=json.dumps(payload).encode(), headers=headers)
-            with urllib.request.urlopen(request, timeout=timeout) as response:
-                generated = json.load(response)['message']['content'].strip()
-            generated = re.sub(r'<think>.*?</think>', '', generated, flags=re.S).strip()
+            generated = generate_text(prompt)
             citations = set(citation_ids(generated))
             allowed = {r['id'] for r in sources}
             if not generated or not citations or not citations <= allowed:
@@ -207,3 +216,10 @@ def ask(question, records, mode='offline', theme='all', style='concise'):
             notice = f'Qwen unavailable or its response failed citation checks ({type(exc).__name__}). Showing retrieved excerpts instead.'
     return {'answer': move_references_below(answer), 'sources': sources, 'mode': actual_mode, 'notice': notice,
             'status': 'matched' if sources else 'insufficient'}
+
+
+def ask(question, records, mode='offline', theme='all', style='concise', web_search=False):
+    if web_search:
+        from web_context import ask_with_web
+        return ask_with_web(question, records, mode, theme, style)
+    return ask_dataset(question, records, mode, theme, style)

@@ -39,12 +39,14 @@ server has no authentication and is not intended for public internet hosting.
 - **Intelligence assistant:** natural-language questions, topic filters, automatic
   evidence selection and answer style, with inspectable source IDs, values, dates
   and limits.
-- **Data explorer:** search records, inspect a schematic coordinate plot, and
-  download the sample corpus as CSV, JSON or GeoJSON.
+- **Data explorer:** search and edit records, inspect location markers on a
+  Malaysia outline map, and download the current corpus as CSV, JSON or GeoJSON.
 - **Response export:** download an answer and its retrieved sources as JSON.
 - **Architecture:** view the system architecture and request process flow, with
   downloadable SVG diagrams covering deployment, retrieval and model fallback,
   plus a plain-language diagram and BM25 learning links.
+- **Optional web context:** a Web search switch beside the prompt adds external
+  search excerpts to the model context, with clickable web references.
 - **Optional Qwen:** generate cited answers from retrieved records through Ollama.
 
 Numeric ranking questions (for example, “top 5 worst flood in Malaysia”) sort
@@ -53,6 +55,54 @@ Flood rankings use inundated area, not overall severity. “List all flood
 observations” returns every matching record. These results are computed in
 Python, including when AI Ollama is selected. Other questions send all matching
 retrieved evidence to the model; there is no fixed source-count cap.
+
+## Optional web search
+
+The **Web search** switch above the prompt is off by default. Off uses only the
+existing dataset. On selects **AI Ollama**, searches the question using
+[Ollama’s web-search API](https://docs.ollama.com/capabilities/web-search), and
+supplies up to five external search excerpts to the model alongside dataset
+records. Choosing Offline turns the switch off. The API also accepts a boolean
+`web_search` field, defaulting to false.
+
+If `OLLAMA_URL=https://ollama.com` and `OLLAMA_API_KEY` are already configured,
+web search uses that Ollama Cloud key. With a local model or another hosted
+provider, set **`OLLAMA_WEB_SEARCH_API_KEY`** to an Ollama account API key on the
+server. A dedicated search key takes precedence; model keys for other providers
+are never sent to the search service. Keys stay on the server.
+
+When enabled, the question is sent to Ollama’s hosted search service. Search adds
+network latency and is subject to the account’s search availability and limits.
+The adapter uses returned excerpts, not complete articles; retrieval timestamps
+are not publication dates. The References section separates synthetic dataset
+records from external links and excerpts. Response downloads include both source
+sets and search status. Web evidence does not validate invented measurements.
+
+Dataset rankings/listings remain computed in Python. The model can add external
+context below those results. Search errors or no results are explicitly labelled;
+model errors or invalid web citations fall back to labelled source excerpts.
+Web search has an eight-second socket timeout. On Heroku the combined search and
+model path allocates the remaining part of a 25-second request budget to the
+model; socket timeouts do not guarantee a strict wall-clock deadline.
+
+## Edit observations
+
+In Data Explorer, expand a record and select **Edit record**. Change its title,
+location, state, coordinates, dates, sensor, metric value, optical cloud cover or
+limitations, then select **Save changes** or **Cancel**. Observation summaries
+and quality labels update automatically from the saved measurements and dates.
+Citation IDs, applications, metric units and synthetic provenance remain stable.
+
+Saved edits are shared by users of this app and take effect in new answers,
+rankings, map markers and all download formats without restarting. Previously
+shown answers are cleared after a save. Stale edits return a conflict instead of
+overwriting newer changes; cancel and reopen the editor to refresh the record.
+
+Edits are stored in `.data/record-edits.sqlite3`, separate from the generated
+sample files. Set `SPACELAB_DATA_DIR` to choose another storage directory.
+Back up that directory to preserve edits. Regenerating the sample files preserves
+saved overrides. Heroku's local filesystem is temporary; durable hosted editing
+requires persistent storage before relying on saves across dyno replacements.
 
 ## Optional local Qwen
 
@@ -109,7 +159,7 @@ observations across 28 locations across all 13 Malaysian states and three federa
 inputs, not real satellite measurements or imagery.
 
 1. Use `sample-data/observations.json` and its data dictionary as the record
-   schema. The server loads records at startup; restart it after changing data.
+   schema. The server reads the dataset and saved edits for each request.
 2. Edit `scripts/generate_data.py` and regenerate JSON, CSV and GeoJSON together:
 
    ```sh
@@ -152,17 +202,20 @@ semantic search. Unknown locations are not geocoded. Numeric rankings cover
 matching records in the bundled dataset, not every real-world location.
 
 The sample corpus cannot establish live conditions or predict events. The
-coordinate plot uses separate schematic panels for Peninsular and East Malaysia,
-not a geographic basemap or a spatial-analysis engine.
+map uses bundled Natural Earth outlines with separate scales for Peninsular and
+East Malaysia. It provides geographic context, not a spatial-analysis engine.
+See [map data attribution](app/maps/README.md).
 
 ## Project layout
 
 ```text
 server.py                  Dependency-free local development server
 webapp.py                  Shared HTTP routes and production WSGI entry point
+record_store.py            Validated persistent edits and current-data exports
 Procfile                   Heroku web process using Gunicorn
 requirements.txt           Production server dependency
 rag.py                     Retrieval, excerpt answers and optional Ollama adapter
+web_context.py             Opt-in Ollama web-search evidence and model context
 app/                       HTML, CSS and browser JavaScript
 sample-data/               JSON, CSV, GeoJSON, dictionary and practice queries
 scripts/generate_data.py   Reproducible synthetic data generator

@@ -1,62 +1,61 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 1060" role="img" aria-labelledby="title desc">
-  <title id="title">SpaceLab explained in plain language</title>
-  <desc id="desc">Ask a question in the assistant interface. The RAG service searches a dataset for relevant facts. In AI mode, a large language model such as Gemma or Qwen, reached through Ollama, writes an answer using those facts. Offline mode shows source excerpts without model reasoning. The answer includes references to check. This project stores its dataset in JSON files, not a separate database, and cannot answer questions without evidence or predict live events.</desc>
-  <defs>
-    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10Z" fill="#50704d"/></marker>
-    <style>
-      text{font-family:system-ui,-apple-system,sans-serif;text-anchor:middle;fill:#243c30}
-      .heading{font-size:22px;font-weight:650}.body{font-size:16px;fill:#53674f}.label{font-size:13px;font-weight:650;letter-spacing:1px;fill:#69825b}
-      .box{fill:white;stroke:#c9d7bf;stroke-width:1.5}.ai{fill:#edf5e2;stroke:#a5c187;stroke-width:1.5}.offline{fill:#fff7e9;stroke:#dfcda9;stroke-width:1.5}.line{fill:none;stroke:#50704d;stroke-width:2;marker-end:url(#arrow)}
-    </style>
-  </defs>
-  <rect width="1100" height="1060" fill="#fafcf7"/>
-  <rect class="box" x="325" y="25" width="450" height="100" rx="16"/>
-  <text class="label" x="550" y="53">01 · YOU ASK</text>
-  <text class="heading" x="550" y="82">Prompt / question</text>
-  <text class="body" x="550" y="109">“What do flood observations in Klang show?”</text>
-  <path class="line" d="M550 125V165"/>
-
-  <rect class="box" x="325" y="165" width="450" height="100" rx="16"/>
-  <text class="label" x="550" y="193">02 · THE FRONT DESK</text>
-  <text class="heading" x="550" y="222">SpaceLab assistant interface</text>
-  <text class="body" x="550" y="249">Passes your question and settings to the service</text>
-  <path class="line" d="M550 265V305"/>
-
-  <rect class="box" x="325" y="305" width="450" height="100" rx="16"/>
-  <text class="label" x="550" y="333">03 · THE RESEARCH ASSISTANT</text>
-  <text class="heading" x="550" y="362">RAG server finds relevant facts</text>
-  <text class="body" x="550" y="389">Matches your place and topic to source records</text>
-  <path class="line" d="M550 405V445"/>
-
-  <rect class="box" x="325" y="445" width="450" height="110" rx="16"/>
-  <text class="label" x="550" y="473">04 · THE REFERENCE SHELF</text>
-  <text class="heading" x="550" y="502">Dataset / database</text>
-  <text class="body" x="550" y="528">This project: synthetic records in a JSON file</text>
-  <text class="body" x="550" y="548">The service selects the matching records</text>
-  <path class="line" d="M550 555V597H290V645"/>
-  <path class="line" d="M550 555V597H810V645"/>
-  <text class="label" x="290" y="624">AI MODE</text>
-  <text class="label" x="810" y="624">OFFLINE MODE</text>
-
-  <rect class="ai" x="65" y="645" width="450" height="160" rx="16"/>
-  <text class="label" x="290" y="675">05 · THE WRITER</text>
-  <text class="heading" x="290" y="708">Ollama → Gemma / Qwen LLM</text>
-  <text class="body" x="290" y="739">The configured AI model writes an answer</text>
-  <text class="body" x="290" y="763">using your question and the selected facts.</text>
-  <text class="body" x="290" y="787">Available models depend on the endpoint.</text>
-
-  <rect class="offline" x="585" y="645" width="450" height="160" rx="16"/>
-  <text class="label" x="810" y="675">05 · THE EXCERPT READER</text>
-  <text class="heading" x="810" y="708">Show matching source excerpts</text>
-  <text class="body" x="810" y="739">No AI model call or generated analysis.</text>
-  <text class="body" x="810" y="763">Limited to the text in the selected records.</text>
-  <text class="body" x="810" y="787">Also used if AI fails its response checks.</text>
-  <path class="line" d="M290 805V850H460V890"/>
-  <path class="line" d="M810 805V850H640V890"/>
-
-  <rect class="box" x="325" y="890" width="450" height="110" rx="16"/>
-  <text class="label" x="550" y="918">06 · YOU CHECK</text>
-  <text class="heading" x="550" y="948">Response answer + references</text>
-  <text class="body" x="550" y="977">Read the answer and verify it against its sources.</text>
-  <text class="body" x="550" y="1034">No evidence? Say so. These sample records cannot show live conditions or forecast events.</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 1280" role="img" aria-labelledby="title desc">
+<title id="title">SpaceLab explained in plain language</title><desc id="desc">Ask a question with web search off or on. SpaceLab checks a notebook containing synthetic Malaysian observations plus saved edits. It computes rankings and complete lists itself. If enabled, a web researcher brings back external excerpts. The optional AI writer explains the evidence. Dataset facts and web references stay separate; errors show clear fallback. Users can edit a record, save or cancel, and see saved changes in later answers, maps and downloads.</desc>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10Z" fill="#50704d"/></marker>
+<style>text{font-family:system-ui,-apple-system,sans-serif;fill:#243c30}.heading{font-size:21px;font-weight:650}.body{font-size:16px;fill:#53674f}.label{font-size:12px;letter-spacing:1px;font-weight:650;fill:#69825b}.code{font-family:monospace;font-size:14px;fill:#53674f}.box{fill:white;stroke:#c9d7bf;stroke-width:1.5}.optional-box{fill:#edf5e2;stroke:#a5c187;stroke-width:1.5}.note{fill:#fff7e9;stroke:#dfcda9;stroke-width:1.5}.line{fill:none;stroke:#50704d;stroke-width:2;marker-end:url(#arrow)}.optional{stroke-dasharray:7 5}</style></defs><rect width="1100" height="1280" fill="#fafcf7"/>
+<rect class="box" x="70" y="30" width="960" height="125" rx="14"/>
+<text class="label" x="92" y="59">01 · YOU ASK</text>
+<text class="heading" x="92" y="91">Enter a question and choose whether to use the web</text>
+<text class="body" x="92" y="120">Web off: use your dataset only. Web on: look for extra external context.</text>
+<text class="body" x="92" y="145">Example: “What do coastal observations show in southern Malaysia?”</text>
+<path class="line" d="M320 155V205"/>
+<path class="line optional" d="M800 155V205"/>
+<rect class="box" x="70" y="205" width="450" height="150" rx="14"/>
+<text class="label" x="92" y="234">02A · THE NOTEBOOK</text>
+<text class="heading" x="92" y="266">Your Malaysian sample observations</text>
+<text class="body" x="92" y="295">103 invented observations across 28 places.</text>
+<text class="body" x="92" y="320">Saved record edits are included automatically.</text>
+<text class="body" x="92" y="345">The measurements are teaching examples.</text>
+<rect class="optional-box" x="580" y="205" width="450" height="150" rx="14"/>
+<text class="label" x="602" y="234">02B · THE WEB RESEARCHER · OPTIONAL</text>
+<text class="heading" x="602" y="266">Find external reference material</text>
+<text class="body" x="602" y="295">Search only when you turn Web search on.</text>
+<text class="body" x="602" y="320">Bring back excerpts and links to their sources.</text>
+<text class="body" x="602" y="345">Keep them separate from your sample values.</text>
+<path class="line" d="M295 355V405"/>
+<path class="line optional" d="M805 355V405"/>
+<rect class="box" x="70" y="405" width="450" height="150" rx="14"/>
+<text class="label" x="92" y="434">03A · THE CALCULATOR &amp; FINDER</text>
+<text class="heading" x="92" y="466">Check every matching observation</text>
+<text class="body" x="92" y="495">“Top 5” → sort the measurement values.</text>
+<text class="body" x="92" y="520">“List all” → return all matching observations.</text>
+<text class="body" x="92" y="545">Other questions → search matching source text.</text>
+<rect class="optional-box" x="580" y="405" width="450" height="150" rx="14"/>
+<text class="label" x="602" y="434">03B · THE EXTRA CONTEXT</text>
+<text class="heading" x="602" y="466">Support an external explanation</text>
+<text class="body" x="602" y="495">The writer can use web evidence for context.</text>
+<text class="body" x="602" y="520">Missing web results? Say so and use the dataset.</text>
+<text class="body" x="602" y="545">The web cannot verify invented measurements.</text>
+<path class="line optional" d="M295 555V595H390V640"/>
+<path class="line optional" d="M805 555V595H710V640"/>
+<rect class="optional-box" x="70" y="640" width="960" height="150" rx="14"/>
+<text class="label" x="92" y="669">04 · THE WRITER, WHEN NEEDED</text>
+<text class="heading" x="92" y="701">AI explains the evidence; calculations stay in Python</text>
+<text class="body" x="92" y="730">The configured model receives the question, dataset evidence and any usable external references.</text>
+<text class="body" x="92" y="755">Computed rankings remain intact; web context can be added underneath.</text>
+<text class="body" x="92" y="780">Offline or failed AI requests show computed results or labelled source excerpts instead.</text>
+<path class="line" d="M550 790V840"/>
+<rect class="box" x="70" y="840" width="960" height="150" rx="14"/>
+<text class="label" x="92" y="869">05 · YOU CHECK</text>
+<text class="heading" x="92" y="901">Read the answer, then open References</text>
+<text class="body" x="92" y="930">Dataset records are labelled synthetic. Web references have clickable external links.</text>
+<text class="body" x="92" y="955">Source IDs are kept out of the displayed answer text. Check dates, relevance and limitations.</text>
+<text class="body" x="92" y="980">Download the answer and both reference sets if you want to keep them.</text>
+<rect class="box" x="70" y="1050" width="960" height="175" rx="14"/>
+<text class="label" x="92" y="1079">06 · UPDATE THE NOTEBOOK IN DATA EXPLORER</text>
+<text class="heading" x="92" y="1111">Edit record → change values → Save changes or Cancel</text>
+<text class="body" x="92" y="1140">Saved changes update future answers, rankings, map markers and dataset downloads immediately.</text>
+<text class="body" x="92" y="1165">The summary and quality label update from your saved measurements and dates.</text>
+<text class="body" x="92" y="1190">The Malaysia outline map works offline. Saved edits persist locally across app restarts.</text>
+<text class="body" x="92" y="1215">Hosted Heroku editing needs durable storage to keep changes across dyno replacements.</text>
+<path class="line" d="M70 1135H30V280H70"/>
 </svg>

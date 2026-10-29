@@ -51,9 +51,12 @@ Verify after deployment:
 - Data explorer and CSV/JSON/GeoJSON downloads work.
 - Response JSON downloads still include the retrieved sources.
 
-Inspect errors using `heroku logs --tail`. The dataset is bundled with the
-application; changes require a new deployment. There are no server-side user
-uploads or durable user records in this starter.
+Inspect errors using `heroku logs --tail`. Bundled sample files change through
+deployment; Data Explorer edits are stored separately in a local SQLite file
+under `SPACELAB_DATA_DIR` (default `.data`). They are immediately shared by workers
+on the same filesystem. Heroku dyno filesystems are temporary and separate:
+these edits do not survive dyno replacement and are not shared across dynos.
+Use persistent storage before relying on durable edits in a hosted deployment.
 
 ## 3. Connect hosted Qwen separately
 
@@ -69,6 +72,7 @@ The existing adapter accepts an **Ollama-compatible `/api/chat` service**:
 | `OLLAMA_URL` | HTTPS base URL of your hosted Ollama-compatible service, without `/api/chat` |
 | `OLLAMA_MODEL` | A Qwen model identifier actually served by that endpoint |
 | `OLLAMA_API_KEY` | Optional Bearer token if required by that service; store as a Heroku config var |
+| `OLLAMA_WEB_SEARCH_API_KEY` | Optional dedicated Ollama Cloud web-search key; existing Ollama Cloud model credentials can also be used |
 | `OLLAMA_TIMEOUT_SECONDS` | Socket timeout; defaults to 20 on Heroku and 60 locally |
 
 Set credentials through Heroku Settings → Config Vars. Do not commit them or

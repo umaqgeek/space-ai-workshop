@@ -1,84 +1,80 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1490" role="img" aria-labelledby="title desc">
-  <title id="title">SpaceLab question-to-answer process flow</title>
-  <desc id="desc">A submitted question is validated. Invalid input returns an HTTP error. BM25 retrieves matching records. Missing sources or requests for live data and predictions produce insufficient-evidence responses without a model call. Otherwise excerpt mode composes source text, while AI mode calls the configured Ollama model. Missing, invalid citations or model errors fall back to excerpts. The API returns the answer, sources and actual mode. The browser displays the answer above clarification and references, and users verify and download it.</desc>
-  <defs>
-    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10Z" fill="#50704d"/></marker>
-    <style>
-      text{font-family:system-ui,-apple-system,sans-serif;fill:#243c30;text-anchor:middle}
-      .heading{font-size:20px;font-weight:650}.body{font-size:15px;fill:#53674f}.label{font-size:13px;font-weight:650;fill:#69825b}.box{fill:white;stroke:#c9d7bf;stroke-width:1.5}.decision{fill:#eaf2dd;stroke:#aabe96;stroke-width:1.5}.warning{fill:#fff6e6;stroke:#dfcda9;stroke-width:1.5}.line{fill:none;stroke:#50704d;stroke-width:2;marker-end:url(#arrow)}.fallback{stroke-dasharray:7 5}
-    </style>
-  </defs>
-  <rect width="1200" height="1490" fill="#fafcf7"/>
-  <rect class="box" x="380" y="25" width="440" height="70" rx="15"/>
-  <text class="heading" x="600" y="54">Submit question + settings</text>
-  <text class="body" x="600" y="79">Browser → POST /api/ask</text>
-  <path class="line" d="M600 95V120"/>
-  <polygon class="decision" points="600,120 755,180 600,240 445,180"/>
-  <text class="heading" x="600" y="178">Valid request?</text>
-  <text class="body" x="600" y="200">Size, question and settings</text>
-  <path class="line" d="M755 180H940"/><text class="label" x="845" y="166">No</text>
-  <rect class="warning" x="940" y="140" width="220" height="85" rx="12"/>
-  <text class="heading" x="1050" y="171">HTTP 400 / 413</text>
-  <text class="body" x="1050" y="197">Show error; revise input</text>
-  <path class="line" d="M600 240V280"/><text class="label" x="621" y="264">Yes</text>
-  <rect class="box" x="380" y="280" width="440" height="90" rx="12"/>
-  <text class="heading" x="600" y="312">Retrieve source records</text>
-  <text class="body" x="600" y="338">Token aliases + place / topic constraints</text>
-  <text class="body" x="600" y="358">BM25 ranks matches → top 1–6 records</text>
-  <path class="line" d="M600 370V405"/>
-  <polygon class="decision" points="600,405 765,465 600,525 435,465"/>
-  <text class="heading" x="600" y="459">Evidence available?</text>
-  <text class="body" x="600" y="482">No live-data / prediction request</text>
-  <path class="line" d="M765 465H940"/><text class="label" x="850" y="450">No</text>
-  <rect class="warning" x="940" y="418" width="220" height="100" rx="12"/>
-  <text class="heading" x="1050" y="447">Insufficient evidence</text>
-  <text class="body" x="1050" y="473">No model call</text>
-  <text class="body" x="1050" y="495">Related sources if available</text>
-  <path class="line" d="M600 525V560"/><text class="label" x="621" y="548">Yes</text>
-  <polygon class="decision" points="600,560 750,620 600,680 450,620"/>
-  <text class="heading" x="600" y="618">AI mode requested?</text>
-  <text class="body" x="600" y="641">Otherwise use excerpt mode</text>
-
-  <path class="line" d="M450 620H320"/><text class="label" x="385" y="605">No</text>
-  <rect class="box" x="40" y="585" width="280" height="105" rx="12"/>
-  <text class="heading" x="180" y="616">Compose excerpts</text>
-  <text class="body" x="180" y="644">Source text + IDs + limitations</text>
-  <text class="label" x="180" y="670">ACTUAL MODE: OFFLINE</text>
-
-  <path class="line" d="M750 620H880"/><text class="label" x="815" y="605">Yes</text>
-  <rect class="box" x="880" y="585" width="280" height="105" rx="12"/>
-  <text class="heading" x="1020" y="615">Call Ollama /api/chat</text>
-  <text class="body" x="1020" y="641">Prompt + question + sources</text>
-  <text class="body" x="1020" y="665">Configured model, auth and timeout</text>
-  <path class="line" d="M1020 690V740"/>
-  <polygon class="decision" points="1020,740 1170,805 1020,870 870,805"/>
-  <text class="heading" x="1020" y="793">Usable model answer?</text>
-  <text class="body" x="1020" y="818">Nonempty; citation IDs exist</text>
-  <text class="body" x="1020" y="838">and belong to retrieved sources</text>
-  <path class="line fallback" d="M870 805H730"/><text class="label" x="800" y="789">No / error</text>
-  <rect class="warning" x="490" y="763" width="240" height="85" rx="12"/>
-  <text class="heading" x="610" y="795">Record fallback notice</text>
-  <text class="body" x="610" y="822">Use existing excerpt answer</text>
-  <path class="line fallback" d="M490 805H355V660H320"/>
-  <path class="line" d="M1020 870V920"/><text class="label" x="1040" y="898">Yes</text>
-  <rect class="box" x="880" y="920" width="280" height="85" rx="12"/>
-  <text class="heading" x="1020" y="953">Keep generated answer</text>
-  <text class="label" x="1020" y="981">ACTUAL MODE: QWEN*</text>
-  <text class="body" x="990" y="1041">*Internal mode name; model is configurable.</text>
-
-  <rect class="box" x="370" y="1100" width="460" height="95" rx="12"/>
-  <text class="heading" x="600" y="1135">Return JSON response</text>
-  <text class="body" x="600" y="1165">answer · sources · actual mode · status · notice</text>
-  <path class="line" d="M180 690V1147H370"/>
-  <path class="line" d="M1020 1005V1147H830"/>
-  <path class="line" d="M1160 468H1185V1147H1027"/>
-  <circle cx="1020" cy="1147" r="4" fill="#50704d"/>
-  <path class="line" d="M600 1195V1240"/>
-  <rect class="box" x="370" y="1240" width="460" height="85" rx="12"/>
-  <text class="heading" x="600" y="1274">Render response in the browser</text>
-  <text class="body" x="600" y="1303">Answer first → Clarification → References</text>
-  <path class="line" d="M600 1325V1370"/>
-  <rect class="box" x="370" y="1370" width="460" height="85" rx="15"/>
-  <text class="heading" x="600" y="1404">Verify claims against source records</text>
-  <text class="body" x="600" y="1433">Optional: download response + references as JSON</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1630" role="img" aria-labelledby="title desc">
+<title id="title">SpaceLab question-to-answer process flow</title><desc id="desc">Validate the question and boolean web-search setting. Read merged data. Filter all records and use BM25, numeric ranking or a complete listing. Off keeps dataset-only processing; on searches Ollama for separate web references. Missing dataset evidence can be supplemented by valid external web excerpts. Preserve computed dataset results, validate model citations, show explicit search errors or model fallback, and display references separately. Edited values are read for new requests and all downloads.</desc>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10Z" fill="#50704d"/></marker>
+<style>text{font-family:system-ui,-apple-system,sans-serif;fill:#243c30}.heading{font-size:21px;font-weight:650}.body{font-size:16px;fill:#53674f}.label{font-size:12px;letter-spacing:1px;font-weight:650;fill:#69825b}.code{font-family:monospace;font-size:14px;fill:#53674f}.box{fill:white;stroke:#c9d7bf;stroke-width:1.5}.optional-box{fill:#edf5e2;stroke:#a5c187;stroke-width:1.5}.note{fill:#fff7e9;stroke:#dfcda9;stroke-width:1.5}.line{fill:none;stroke:#50704d;stroke-width:2;marker-end:url(#arrow)}.optional{stroke-dasharray:7 5}</style></defs><rect width="1200" height="1630" fill="#fafcf7"/>
+<rect class="box" x="300" y="30" width="600" height="120" rx="14"/>
+<text class="label" x="322" y="59">01 · BROWSER</text>
+<text class="heading" x="322" y="91">Submit question and current settings</text>
+<text class="body" x="322" y="120">POST /api/ask · web_search defaults to false</text>
+<text class="body" x="322" y="145">Web on selects AI; choosing Offline turns Web off.</text>
+<path class="line" d="M600 150V195"/>
+<rect class="box" x="300" y="195" width="600" height="100" rx="14"/>
+<text class="label" x="322" y="224">02 · INPUT CHECK</text>
+<text class="heading" x="322" y="256">Validate question, size, settings and boolean</text>
+<text class="body" x="322" y="285">Invalid request → HTTP 400 / 413; revise the input.</text>
+<path class="line" d="M420 295V325H310V360"/>
+<path class="line optional" d="M780 295V325H890V360"/>
+<rect class="box" x="60" y="360" width="500" height="170" rx="14"/>
+<text class="label" x="82" y="389">03A · DATASET PATH · ALWAYS</text>
+<text class="heading" x="82" y="421">Read bundled records + saved edits</text>
+<text class="body" x="82" y="450">Apply exact place / state / topic filters to the full corpus.</text>
+<text class="body" x="82" y="475">Rank / list query → numeric sort or all matching rows.</text>
+<text class="body" x="82" y="500">Other query → BM25 over every matching record.</text>
+<text class="body" x="82" y="525">No fixed source-count limit.</text>
+<rect class="optional-box" x="640" y="360" width="500" height="170" rx="14"/>
+<text class="label" x="662" y="389">03B · WEB PATH · ONLY WHEN ENABLED</text>
+<text class="heading" x="662" y="421">Search the question using Ollama Cloud</text>
+<text class="body" x="662" y="450">Return up to 5 external excerpts with source URLs.</text>
+<text class="body" x="662" y="475">Success → web_sources, source IDs and retrieval times.</text>
+<text class="body" x="662" y="500">Empty / error → dataset-only result + search notice.</text>
+<text class="body" x="662" y="525">Off → skip this path entirely.</text>
+<path class="line" d="M310 530V580"/>
+<path class="line optional" d="M890 530V580"/>
+<rect class="box" x="60" y="580" width="500" height="170" rx="14"/>
+<text class="label" x="82" y="609">04A · DATASET OUTCOME</text>
+<text class="heading" x="82" y="641">Choose computed results, excerpts or AI</text>
+<text class="body" x="82" y="670">Rank / list → deterministic computed results.</text>
+<text class="body" x="82" y="695">Matching records + AI mode → dataset-only model answer.</text>
+<text class="body" x="82" y="720">Offline → source excerpts; model failure → fallback.</text>
+<text class="body" x="82" y="745">Missing evidence / live request → insufficient evidence.</text>
+<rect class="optional-box" x="640" y="580" width="500" height="170" rx="14"/>
+<text class="label" x="662" y="609">04B · WITH USABLE WEB REFERENCES</text>
+<text class="heading" x="662" y="641">Provide a separate external evidence set</text>
+<text class="body" x="662" y="670">AI may answer even when dataset evidence is insufficient.</text>
+<text class="body" x="662" y="695">Synthetic values remain distinct from external context.</text>
+<text class="body" x="662" y="720">Rank / list: retain results and request an external addendum.</text>
+<text class="body" x="662" y="745">Offline API requests can show web excerpts without AI.</text>
+<path class="line optional" d="M450 750V785H450V825"/>
+<path class="line optional" d="M890 750V785H750V825"/>
+<rect class="optional-box" x="300" y="825" width="600" height="130" rx="14"/>
+<text class="label" x="322" y="854">05 · OPTIONAL MODEL CALL</text>
+<text class="heading" x="322" y="886">Question + evidence → configured Ollama model</text>
+<text class="body" x="322" y="915">Untrusted input remains data; model credentials stay on server.</text>
+<text class="body" x="322" y="940">Use dataset-only or dataset + web system instructions.</text>
+<text class="body" x="322" y="965">Search / model calls use timeouts; report fallback honestly.</text>
+<path class="line" d="M600 955V1000"/>
+<rect class="box" x="300" y="1000" width="600" height="145" rx="14"/>
+<text class="label" x="322" y="1029">06 · COMPOSE &amp; CHECK</text>
+<text class="heading" x="322" y="1061">Preserve computed results; validate model citations</text>
+<text class="body" x="322" y="1090">Source IDs must belong to the supplied evidence.</text>
+<text class="body" x="322" y="1115">Web-assisted generated answers must cite a supplied WEB ID.</text>
+<text class="body" x="322" y="1140">Missing / invalid citations or model errors → labelled excerpts.</text>
+<path class="line" d="M60 665H30V1205H300"/>
+<text class="body" x="52" y="1182">Direct computed / excerpt / insufficient result</text>
+<path class="line" d="M600 1145V1190"/>
+<rect class="box" x="300" y="1190" width="600" height="130" rx="14"/>
+<text class="label" x="322" y="1219">07 · RETURN RESPONSE</text>
+<text class="heading" x="322" y="1251">Dataset sources + separate web sources and status</text>
+<text class="body" x="322" y="1280">answer · actual mode · status · notice · web_search</text>
+<text class="body" x="322" y="1305">Web search failures remain visible even with a dataset answer.</text>
+<text class="body" x="322" y="1330">Dataset-only requests never call the search provider.</text>
+<path class="line" d="M600 1320V1365"/>
+<rect class="box" x="60" y="1365" width="1080" height="120" rx="14"/>
+<text class="label" x="82" y="1394">08 · DISPLAY &amp; VERIFY</text>
+<text class="heading" x="82" y="1426">Answer → Clarification → References → optional JSON download</text>
+<text class="body" x="82" y="1455">Keep inline IDs out of the displayed prose. Separate synthetic dataset cards from clickable external web references.</text>
+<text class="body" x="82" y="1480">Citation checks establish source identity; users still verify dates, claims, relevance and limitations.</text>
+<rect class="box" x="60" y="1525" width="1080" height="80" rx="14"/>
+<text class="label" x="82" y="1554">DATA FRESHNESS</text>
+<text class="heading" x="82" y="1586">Saved edits are read by the next question, ranking, map refresh and dataset download.</text>
 </svg>

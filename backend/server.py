@@ -3,7 +3,7 @@ import argparse
 import os
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-from webapp import dispatch
+from backend.webapp import dispatch
 
 
 class Handler(BaseHTTPRequestHandler):

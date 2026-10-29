@@ -9,8 +9,8 @@ from contextlib import closing
 from datetime import date
 from pathlib import Path
 
-from rag import load_records
-from scripts.generate_data import SITES, THEMES
+from rag_server.rag import load_records
+from data.generate_data import SITES, THEMES
 
 ROOT = Path(__file__).resolve().parent
 STATES = {site[1] for site in SITES}
@@ -28,7 +28,7 @@ class RecordNotFound(Exception):
 
 
 def database_path():
-    return Path(os.environ.get('SPACELAB_DATA_DIR', str(ROOT / '.data'))) / 'record-edits.sqlite3'
+    return Path(os.environ.get('SPACELAB_DATA_DIR', str(ROOT / 'database'))) / 'record-edits.sqlite3'
 
 
 def _merge(records, connection):

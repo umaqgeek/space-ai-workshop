@@ -8,10 +8,10 @@ from http import HTTPStatus
 from pathlib import Path
 from urllib.parse import urlsplit
 
-from rag import ask, SYSTEM_PROMPT
-from record_store import get_records, update_record, export_records, EditConflict, RecordNotFound
+from rag_server.rag import ask, SYSTEM_PROMPT
+from data.record_store import get_records, update_record, export_records, EditConflict, RecordNotFound
 
-ROOT = Path(__file__).resolve().parent
+ROOT = Path(__file__).resolve().parents[1]
 MAX_BODY = 16_384
 
 
@@ -44,14 +44,14 @@ class Request:
             mime = {'json': 'application/json', 'csv': 'text/csv', 'geojson': 'application/geo+json'}[extension]
             return self.respond(export_records(get_records(), extension), content_type=mime + '; charset=utf-8')
         # Explicit allowlist keeps project source and local files off the web server.
-        files = {'/': ROOT / 'app/index.html', '/app.js': ROOT / 'app/app.js', '/styles.css': ROOT / 'app/styles.css',
-                 '/maps/malaysia.geojson': ROOT / 'app/maps/malaysia.geojson',
-                 '/diagrams/architecture.svg': ROOT / 'app/diagrams/architecture.svg',
-                 '/diagrams/process-flow.svg': ROOT / 'app/diagrams/process-flow.svg',
-                 '/diagrams/plain-language-flow.svg': ROOT / 'app/diagrams/plain-language-flow.svg',
-                 '/sample-data/observations.json': ROOT / 'sample-data/observations.json',
-                 '/sample-data/observations.csv': ROOT / 'sample-data/observations.csv',
-                 '/sample-data/observations.geojson': ROOT / 'sample-data/observations.geojson'}
+        files = {'/': ROOT / 'frontend/index.html', '/app.js': ROOT / 'frontend/app.js', '/styles.css': ROOT / 'frontend/styles.css',
+                 '/maps/malaysia.geojson': ROOT / 'frontend/maps/malaysia.geojson',
+                 '/diagrams/architecture.svg': ROOT / 'docs/diagrams/architecture.svg',
+                 '/diagrams/process-flow.svg': ROOT / 'docs/diagrams/process-flow.svg',
+                 '/diagrams/plain-language-flow.svg': ROOT / 'docs/diagrams/plain-language-flow.svg',
+                 '/sample-data/observations.json': ROOT / 'data/sample-data/observations.json',
+                 '/sample-data/observations.csv': ROOT / 'data/sample-data/observations.csv',
+                 '/sample-data/observations.geojson': ROOT / 'data/sample-data/observations.geojson'}
         target = files.get(path)
         if not target:
             return self.respond({'error': 'Not found'}, 404)

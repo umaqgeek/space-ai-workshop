@@ -1,24 +1,24 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1450" role="img" aria-labelledby="title desc">
-<title id="title">SpaceLab system architecture</title><desc id="desc">The browser uses local Python or Heroku Gunicorn. Shared routes read 103 synthetic records across 28 Malaysian locations with SQLite edit overrides on every request. Python filters and ranks all matching records, computes numeric rankings and complete listings, and optionally calls Ollama. A default-off web switch adds external Ollama search excerpts. Dataset records and web references remain separate. Explorer edits update maps, answers and downloads immediately. Natural Earth outlines are bundled locally. SQLite is local; Heroku persistence needs durable storage.</desc>
+<title id="title">SpaceLab system architecture</title><desc id="desc">Components live in frontend/ (browser), backend/ (API gateway), rag_server/ (retrieval and AI context), data/ (datasets, generator and SQLite), docs/ (diagrams and guides), and tests/ (shared verification). The browser uses local Python or Heroku Gunicorn. Shared routes read 103 synthetic records across 28 Malaysian locations with SQLite edit overrides on every request. Python filters and ranks all matching records, computes numeric rankings and complete listings, and optionally calls Ollama. A default-off web switch adds external Ollama search excerpts. Dataset records and web references remain separate. Explorer edits update maps, answers and downloads immediately. Natural Earth outlines are bundled locally. SQLite is local; Heroku persistence needs durable storage.</desc>
 <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10Z" fill="#50704d"/></marker>
 <style>text{font-family:system-ui,-apple-system,sans-serif;fill:#243c30}.heading{font-size:21px;font-weight:650}.body{font-size:16px;fill:#53674f}.label{font-size:12px;letter-spacing:1px;font-weight:650;fill:#69825b}.code{font-family:monospace;font-size:14px;fill:#53674f}.box{fill:white;stroke:#c9d7bf;stroke-width:1.5}.optional-box{fill:#edf5e2;stroke:#a5c187;stroke-width:1.5}.note{fill:#fff7e9;stroke:#dfcda9;stroke-width:1.5}.line{fill:none;stroke:#50704d;stroke-width:2;marker-end:url(#arrow)}.optional{stroke-dasharray:7 5}</style></defs><rect width="1200" height="1450" fill="#fafcf7"/>
 <rect class="box" x="60" y="35" width="1080" height="140" rx="14"/>
-<text class="label" x="82" y="64">BROWSER · HTML / CSS / JAVASCRIPT</text>
+<text class="label" x="82" y="64">BROWSER · frontend/ · HTML / CSS / JAVASCRIPT</text>
 <text class="heading" x="82" y="96">Assistant · Data explorer · Architecture</text>
 <text class="body" x="82" y="125">Question + topic + answer style + model mode + Web search switch (off by default)</text>
 <text class="body" x="82" y="150">Explorer: edit / save / cancel · Malaysia outline map · current CSV / JSON / GeoJSON downloads</text>
 <rect class="box" x="60" y="220" width="500" height="125" rx="14"/>
-<text class="label" x="82" y="249">APPLICATION HOST · CHOOSE ONE</text>
+<text class="label" x="82" y="249">APPLICATION HOST · backend/</text>
 <text class="heading" x="82" y="281">Local Python OR Heroku Gunicorn</text>
-<text class="body" x="82" y="310">server.py → shared routes OR Procfile → webapp:application</text>
+<text class="body" x="82" y="310">python -m backend.server OR Gunicorn WSGI</text>
 <text class="body" x="82" y="335">The browser and API are served by the same app.</text>
 <rect class="box" x="640" y="220" width="500" height="125" rx="14"/>
-<text class="label" x="662" y="249">CURRENT DATA · record_store.py</text>
+<text class="label" x="662" y="249">CURRENT DATA · data/record_store.py</text>
 <text class="heading" x="662" y="281">Bundled JSON + SQLite edit overrides</text>
 <text class="body" x="662" y="310">103 synthetic records · 28 places · all 13 states + 3 territories</text>
 <text class="body" x="662" y="335">Read merged records for each request; no restart after edits.</text>
 <rect class="box" x="60" y="405" width="1080" height="125" rx="14"/>
-<text class="label" x="82" y="434">SHARED PYTHON BACKEND · webapp.py</text>
+<text class="label" x="82" y="434">PYTHON API GATEWAY · backend/webapp.py</text>
 <text class="heading" x="82" y="466">Validation · queries · edits · dynamic exports</text>
 <text class="body" x="82" y="495">POST /api/ask · POST /api/records/{id} · GET /api/records</text>
 <text class="body" x="82" y="520">GET /sample-data/observations.{csv,json,geojson} · bundled assets / prompt / health</text>
@@ -27,13 +27,13 @@
 <path class="line" d="M890 405V345"/>
 <text class="body" x="910" y="384">Read / save</text>
 <rect class="box" x="60" y="590" width="500" height="145" rx="14"/>
-<text class="label" x="82" y="619">DATASET EVIDENCE · rag.py</text>
+<text class="label" x="82" y="619">DATASET EVIDENCE · rag_server/rag.py</text>
 <text class="heading" x="82" y="651">Filter all records, then select by intent</text>
 <text class="body" x="82" y="680">Exact place / state / topic constraints; no fixed source cap.</text>
 <text class="body" x="82" y="705">General questions → BM25; top / bottom → numeric sort.</text>
 <text class="body" x="82" y="730">“List all” → every matching record.</text>
 <rect class="optional-box" x="640" y="590" width="500" height="145" rx="14"/>
-<text class="label" x="662" y="619">OPTIONAL EXTERNAL EVIDENCE · web_context.py</text>
+<text class="label" x="662" y="619">WEB CONTEXT · rag_server/web_context.py</text>
 <text class="heading" x="662" y="651">Web switch on → Ollama Cloud search</text>
 <text class="body" x="662" y="680">POST /api/web_search · up to 5 external search excerpts</text>
 <text class="body" x="662" y="705">Web switch off → no search request; dataset evidence only.</text>

@@ -5,9 +5,9 @@ import unittest
 import urllib.error
 from unittest.mock import patch
 
-import rag
-import web_context
-from webapp import dispatch
+from rag_server import rag
+from rag_server import web_context
+from backend.webapp import dispatch
 
 WEB_SOURCES = [{'id': 'WEB-001', 'title': 'Regional coastal context',
                 'url': 'https://example.org/coastal', 'content': 'External coastal geography context.',
@@ -20,14 +20,14 @@ class WebEvidenceTests(unittest.TestCase):
         cls.records = rag.load_records()
 
     def test_search_is_never_called_when_toggle_is_off(self):
-        with patch('web_context.search_web') as search, patch('rag.generate_text', return_value='142 ha [FLOOD-001].'):
+        with patch('rag_server.web_context.search_web') as search, patch('rag_server.rag.generate_text', return_value='142 ha [FLOOD-001].'):
             result = rag.ask('flood in Klang', self.records, mode='qwen', web_search=False)
         search.assert_not_called()
         self.assertEqual(result['mode'], 'qwen')
         self.assertNotIn('web_sources', result)
 
     def test_model_receives_separate_dataset_and_web_evidence(self):
-        with patch('web_context.search_web', return_value=WEB_SOURCES) as search, patch('rag.generate_text', return_value='Dataset water is fictional [FLOOD-001]. External context [WEB-001].') as model:
+        with patch('rag_server.web_context.search_web', return_value=WEB_SOURCES) as search, patch('rag_server.rag.generate_text', return_value='Dataset water is fictional [FLOOD-001]. External context [WEB-001].') as model:
             result = rag.ask('flood in Klang', self.records, mode='qwen', web_search=True)
         search.assert_called_once_with('flood in Klang')
         prompt = model.call_args.args[0]
@@ -41,7 +41,7 @@ class WebEvidenceTests(unittest.TestCase):
         self.assertTrue(result['answer'].endswith('Refs: [FLOOD-001], [WEB-001]'))
 
     def test_web_only_question_can_generate_without_dataset_matches(self):
-        with patch('web_context.search_web', return_value=WEB_SOURCES), patch('rag.generate_text', return_value='External context [WEB-001].') as model:
+        with patch('rag_server.web_context.search_web', return_value=WEB_SOURCES), patch('rag_server.rag.generate_text', return_value='External context [WEB-001].') as model:
             result = rag.ask('What is the mass of Jupiter?', self.records, mode='qwen', web_search=True)
         model.assert_called_once()
         self.assertEqual(result['sources'], [])
@@ -49,7 +49,7 @@ class WebEvidenceTests(unittest.TestCase):
         self.assertEqual(result['mode'], 'qwen')
 
     def test_web_failure_is_explicit_and_keeps_dataset_answer(self):
-        with patch('web_context.search_web', side_effect=web_context.SearchUnavailable('Search failed.')), patch('rag.generate_text', return_value='142 ha [FLOOD-001].'):
+        with patch('rag_server.web_context.search_web', side_effect=web_context.SearchUnavailable('Search failed.')), patch('rag_server.rag.generate_text', return_value='142 ha [FLOOD-001].'):
             result = rag.ask('flood in Klang', self.records, mode='qwen', web_search=True)
         self.assertEqual(result['web_search']['status'], 'failed')
         self.assertEqual(result['web_sources'], [])
@@ -57,14 +57,14 @@ class WebEvidenceTests(unittest.TestCase):
         self.assertIn('142', result['answer'])
 
     def test_empty_search_is_labelled(self):
-        with patch('web_context.search_web', return_value=[]), patch('rag.generate_text') as model:
+        with patch('rag_server.web_context.search_web', return_value=[]), patch('rag_server.rag.generate_text') as model:
             result = rag.ask('flood in Klang', self.records, mode='qwen', web_search=True)
         model.assert_not_called()
         self.assertEqual(result['web_search']['status'], 'empty')
         self.assertIn('dataset evidence only', result['notice'])
 
     def test_computed_rankings_remain_intact_with_external_context(self):
-        with patch('web_context.search_web', return_value=WEB_SOURCES), patch('rag.generate_text', return_value='External context [WEB-001].') as model:
+        with patch('rag_server.web_context.search_web', return_value=WEB_SOURCES), patch('rag_server.rag.generate_text', return_value='External context [WEB-001].') as model:
             result = rag.ask('top 5 worst flood in Malaysia', self.records, mode='qwen', web_search=True)
         self.assertEqual([r['value'] for r in result['sources']], [221, 219, 217, 184, 182])
         self.assertIn('Sandakan, Sabah: 221 ha', result['answer'])
@@ -72,12 +72,12 @@ class WebEvidenceTests(unittest.TestCase):
         self.assertIn('Do not reproduce, modify, or replace', model.call_args.args[0])
 
     def test_no_model_and_model_errors_show_labelled_external_excerpts(self):
-        with patch('web_context.search_web', return_value=WEB_SOURCES), patch('rag.generate_text') as model:
+        with patch('rag_server.web_context.search_web', return_value=WEB_SOURCES), patch('rag_server.rag.generate_text') as model:
             result = rag.ask('flood in Klang', self.records, web_search=True)
         model.assert_not_called()
         self.assertIn('External web search excerpts (not model analysis)', result['answer'])
         for output in ('Unsupported [WEB-999].', 'No citations.', 'Only dataset [FLOOD-001].'):
-            with self.subTest(output=output), patch('web_context.search_web', return_value=WEB_SOURCES), patch('rag.generate_text', return_value=output):
+            with self.subTest(output=output), patch('rag_server.web_context.search_web', return_value=WEB_SOURCES), patch('rag_server.rag.generate_text', return_value=output):
                 result = rag.ask('flood in Klang', self.records, mode='qwen', web_search=True)
                 self.assertEqual(result['mode'], 'offline')
                 self.assertIn('citations failed', result['notice'])
@@ -85,11 +85,11 @@ class WebEvidenceTests(unittest.TestCase):
                 self.assertEqual(result['web_sources'], WEB_SOURCES)
 
     def test_live_questions_require_web_evidence(self):
-        with patch('web_context.search_web', return_value=WEB_SOURCES), patch('rag.generate_text', return_value='The supplied web excerpt is insufficient for live conditions [WEB-001].') as model:
+        with patch('rag_server.web_context.search_web', return_value=WEB_SOURCES), patch('rag_server.rag.generate_text', return_value='The supplied web excerpt is insufficient for live conditions [WEB-001].') as model:
             result = rag.ask('current coastal conditions', self.records, mode='qwen', web_search=True)
         model.assert_called_once()
         self.assertEqual(result['mode'], 'qwen')
-        with patch('web_context.search_web', side_effect=web_context.SearchUnavailable('Search failed.')), patch('rag.generate_text') as model:
+        with patch('rag_server.web_context.search_web', side_effect=web_context.SearchUnavailable('Search failed.')), patch('rag_server.rag.generate_text') as model:
             result = rag.ask('current coastal conditions', self.records, mode='qwen', web_search=True)
         model.assert_not_called()
         self.assertEqual(result['status'], 'insufficient')
@@ -100,7 +100,7 @@ class WebEvidenceTests(unittest.TestCase):
             status, _, _ = dispatch('POST', '/api/ask', {'Content-Length': str(len(payload))}, io.BytesIO(payload))
             self.assertEqual(status, 400)
         payload = json.dumps({'question': 'flood in Klang', 'web_search': True}).encode()
-        with patch('web_context.search_web', return_value=WEB_SOURCES) as search:
+        with patch('rag_server.web_context.search_web', return_value=WEB_SOURCES) as search:
             status, _, body = dispatch('POST', '/api/ask', {'Content-Length': str(len(payload))}, io.BytesIO(payload))
         search.assert_called_once()
         self.assertEqual(status, 200)
@@ -121,7 +121,7 @@ class SearchTransportTests(unittest.TestCase):
             {'title': 'Local', 'url': 'http://127.0.0.1/private', 'content': 'unsafe'},
             {'title': 'Empty', 'url': 'https://example.org/empty', 'content': ''},
         ]
-        with patch('web_context.urllib.request.urlopen', return_value=io.BytesIO(json.dumps({'results': results}).encode())) as request:
+        with patch('rag_server.web_context.urllib.request.urlopen', return_value=io.BytesIO(json.dumps({'results': results}).encode())) as request:
             sources = web_context.search_web('coastal Malaysia')
         sent = request.call_args.args[0]
         self.assertEqual(sent.full_url, 'https://ollama.com/api/web_search')
@@ -134,7 +134,7 @@ class SearchTransportTests(unittest.TestCase):
         self.assertIn('retrieved_at', sources[0])
 
     def test_credentials_are_scoped_to_the_search_provider(self):
-        with patch.dict(os.environ, {'OLLAMA_API_KEY': 'other-provider-key', 'OLLAMA_URL': 'https://models.example.org'}, clear=True), patch('web_context.urllib.request.urlopen') as request:
+        with patch.dict(os.environ, {'OLLAMA_API_KEY': 'other-provider-key', 'OLLAMA_URL': 'https://models.example.org'}, clear=True), patch('rag_server.web_context.urllib.request.urlopen') as request:
             with self.assertRaises(web_context.SearchUnavailable):
                 web_context.search_web('coastal Malaysia')
         request.assert_not_called()
@@ -146,11 +146,11 @@ class SearchTransportTests(unittest.TestCase):
                     urllib.error.HTTPError(web_context.SEARCH_URL, 401, 'secret', {}, None),
                     urllib.error.HTTPError(web_context.SEARCH_URL, 429, 'secret', {}, None)]
         for failure in failures:
-            with self.subTest(failure=type(failure).__name__), patch('web_context.urllib.request.urlopen', side_effect=failure):
+            with self.subTest(failure=type(failure).__name__), patch('rag_server.web_context.urllib.request.urlopen', side_effect=failure):
                 with self.assertRaises(web_context.SearchUnavailable) as error:
                     web_context.search_web('coastal Malaysia')
                 self.assertNotIn('search-test-placeholder', str(error.exception))
         for body in (b'not json', b'[]', b'{"results": null}', b'x' * (web_context.MAX_RESPONSE_BYTES + 1)):
-            with patch('web_context.urllib.request.urlopen', return_value=io.BytesIO(body)):
+            with patch('rag_server.web_context.urllib.request.urlopen', return_value=io.BytesIO(body)):
                 with self.assertRaises(web_context.SearchUnavailable):
                     web_context.search_web('coastal Malaysia')

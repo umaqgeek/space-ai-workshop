@@ -6,8 +6,8 @@ from unittest.mock import patch
 from wsgiref.util import setup_testing_defaults
 from wsgiref.validate import validator
 
-import rag
-from webapp import application
+from rag_server import rag
+from backend.webapp import application
 
 
 class WsgiTests(unittest.TestCase):
@@ -64,7 +64,7 @@ class HostedModelTests(unittest.TestCase):
         body = json.dumps({'message': {'content': '142 ha [FLOOD-001].'}}).encode()
         config = {'DYNO': 'web.1', 'OLLAMA_URL': 'https://model.example.test',
                   'OLLAMA_API_KEY': 'test-placeholder', 'OLLAMA_MODEL': 'qwen3:4b'}
-        with patch.dict(os.environ, config, clear=True), patch('rag.urllib.request.urlopen', return_value=io.BytesIO(body)) as call:
+        with patch.dict(os.environ, config, clear=True), patch('rag_server.rag.urllib.request.urlopen', return_value=io.BytesIO(body)) as call:
             result = rag.ask('flood in Klang', rag.load_records(), mode='qwen')
         self.assertEqual(result['mode'], 'qwen')
         request = call.call_args.args[0]
@@ -74,7 +74,7 @@ class HostedModelTests(unittest.TestCase):
 
     def test_secret_never_sent_to_plain_http(self):
         config = {'OLLAMA_URL': 'http://model.example.test', 'OLLAMA_API_KEY': 'test-placeholder'}
-        with patch.dict(os.environ, config, clear=True), patch('rag.urllib.request.urlopen') as call:
+        with patch.dict(os.environ, config, clear=True), patch('rag_server.rag.urllib.request.urlopen') as call:
             result = rag.ask('flood in Klang', rag.load_records(), mode='qwen')
         call.assert_not_called()
         self.assertEqual(result['mode'], 'offline')
@@ -82,7 +82,7 @@ class HostedModelTests(unittest.TestCase):
 
     def test_invalid_timeout_falls_back(self):
         for timeout in ('invalid', '0', '-1', '61', 'nan'):
-            with self.subTest(timeout=timeout), patch.dict(os.environ, {'OLLAMA_TIMEOUT_SECONDS': timeout}, clear=True), patch('rag.urllib.request.urlopen') as call:
+            with self.subTest(timeout=timeout), patch.dict(os.environ, {'OLLAMA_TIMEOUT_SECONDS': timeout}, clear=True), patch('rag_server.rag.urllib.request.urlopen') as call:
                 result = rag.ask('flood in Klang', rag.load_records(), mode='qwen')
                 self.assertEqual(result['mode'], 'offline')
                 call.assert_not_called()

@@ -9,8 +9,8 @@ from http.server import ThreadingHTTPServer
 from pathlib import Path
 from unittest.mock import patch
 
-import rag
-from server import Handler
+from rag_server import rag
+from backend.server import Handler
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -21,7 +21,7 @@ class RetrievalTests(unittest.TestCase):
         cls.records = rag.load_records()
 
     def test_sample_query_answer_key(self):
-        queries = json.loads((ROOT / 'sample-data/practice-queries.json').read_text())
+        queries = json.loads((ROOT / 'data/sample-data/practice-queries.json').read_text())
         for query in queries:
             with self.subTest(question=query['question']):
                 result = rag.ask(query['question'], self.records)
@@ -59,7 +59,7 @@ class RetrievalTests(unittest.TestCase):
 
     def test_nationwide_top_five_are_computed_from_all_records(self):
         question = 'from all data, list top 5 worst flood in Malaysia, including all states'
-        with patch('rag.urllib.request.urlopen') as call:
+        with patch('rag_server.rag.urllib.request.urlopen') as call:
             result = rag.ask(question, self.records, mode='qwen')
         call.assert_not_called()
         self.assertEqual(result['mode'], 'data')
@@ -77,7 +77,7 @@ class RetrievalTests(unittest.TestCase):
         self.assertEqual(result['sources'][0]['value'], max(r['value'] for r in self.records if r['theme'] == 'vegetation'))
 
     def test_list_all_returns_every_matching_record_without_llm(self):
-        with patch('rag.urllib.request.urlopen') as call:
+        with patch('rag_server.rag.urllib.request.urlopen') as call:
             result = rag.ask('List all flood observations', self.records, mode='qwen')
         call.assert_not_called()
         self.assertEqual(len(result['sources']), 28)
@@ -96,20 +96,20 @@ class RetrievalTests(unittest.TestCase):
         self.assertEqual(result['status'], 'insufficient')
 
     def test_forecasts_are_not_sent_to_llm(self):
-        with patch('rag.urllib.request.urlopen') as call:
+        with patch('rag_server.rag.urllib.request.urlopen') as call:
             result = rag.ask('Will Klang flood tomorrow?', self.records, mode='qwen')
         call.assert_not_called()
         self.assertEqual(result['status'], 'insufficient')
         self.assertIn('cannot answer live conditions', result['answer'])
 
     def test_empty_evidence_never_calls_qwen(self):
-        with patch('rag.urllib.request.urlopen') as call:
+        with patch('rag_server.rag.urllib.request.urlopen') as call:
             result = rag.ask('What is the mass of Jupiter?', self.records, mode='qwen')
         call.assert_not_called()
         self.assertEqual(result['status'], 'insufficient')
 
     def test_ollama_failure_falls_back_transparently(self):
-        with patch('rag.urllib.request.urlopen', side_effect=OSError('offline')):
+        with patch('rag_server.rag.urllib.request.urlopen', side_effect=OSError('offline')):
             result = rag.ask('flood in Klang', self.records, mode='qwen')
         self.assertEqual(result['mode'], 'offline')
         self.assertIn('Qwen unavailable', result['notice'])
@@ -117,7 +117,7 @@ class RetrievalTests(unittest.TestCase):
 
     def qwen_response(self, content):
         body = json.dumps({'message': {'content': content}}).encode()
-        with patch('rag.urllib.request.urlopen', return_value=io.BytesIO(body)) as call:
+        with patch('rag_server.rag.urllib.request.urlopen', return_value=io.BytesIO(body)) as call:
             result = rag.ask('flood in Klang', self.records, mode='qwen')
             payload = json.loads(call.call_args.args[0].data)
             self.assertFalse(payload['stream'])
@@ -153,7 +153,7 @@ class RetrievalTests(unittest.TestCase):
                  'Both observations are limited by clouds and mixed pixels '
                  '[VEGETATION-021, VEGETATION-023].')
         response = json.dumps({'message': {'content': prose}}).encode()
-        with patch('rag.urllib.request.urlopen', return_value=io.BytesIO(response)):
+        with patch('rag_server.rag.urllib.request.urlopen', return_value=io.BytesIO(response)):
             result = rag.ask('Compare vegetation in Kota Kinabalu and Kuching', self.records, mode='qwen')
         self.assertEqual(result['mode'], 'qwen')
         body, refs = result['answer'].rsplit('\n\nRefs: ', 1)
@@ -201,19 +201,19 @@ class DataTests(unittest.TestCase):
     def test_generator_reproduces_bundled_exports(self):
         import contextlib
         import tempfile
-        from scripts import generate_data
+        from data import generate_data
 
         with tempfile.TemporaryDirectory() as directory:
             with patch.object(generate_data, 'ROOT', Path(directory)), contextlib.redirect_stdout(io.StringIO()):
                 generate_data.generate()
             for name in ('observations.json', 'observations.csv', 'observations.geojson'):
-                self.assertEqual((Path(directory) / name).read_bytes(), (ROOT / 'sample-data' / name).read_bytes())
+                self.assertEqual((Path(directory) / name).read_bytes(), (ROOT / 'data/sample-data' / name).read_bytes())
 
     def test_export_formats_agree(self):
         records = rag.load_records()
-        with (ROOT / 'sample-data/observations.csv').open() as f:
+        with (ROOT / 'data/sample-data/observations.csv').open() as f:
             rows = list(csv.DictReader(f))
-        geo = json.loads((ROOT / 'sample-data/observations.geojson').read_text())
+        geo = json.loads((ROOT / 'data/sample-data/observations.geojson').read_text())
         self.assertEqual(len(records), 103)
         self.assertEqual({r['id'] for r in records}, {r['id'] for r in rows})
         self.assertEqual(geo['type'], 'FeatureCollection')

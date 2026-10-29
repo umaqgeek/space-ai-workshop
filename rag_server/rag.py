@@ -7,7 +7,7 @@ import re
 import urllib.request
 from pathlib import Path
 
-DATA_PATH = Path(__file__).resolve().parent / 'sample-data' / 'observations.json'
+DATA_PATH = Path(__file__).resolve().parents[1] / 'data' / 'sample-data' / 'observations.json'
 STOP = set('a an the is are was were of in on at to for and or with from what which how can could does do tell me about show please explain compare between there this that using data records observation observations satellite malaysia'.split())
 ALIASES = {'flooding': 'flood', 'floods': 'flood', 'banjir': 'flood', 'inundation': 'flood',
            'ndvi': 'vegetation', 'green': 'vegetation', 'greenness': 'vegetation', 'tumbuhan': 'vegetation',
@@ -220,6 +220,6 @@ def ask_dataset(question, records, mode='offline', theme='all', style='concise')
 
 def ask(question, records, mode='offline', theme='all', style='concise', web_search=False):
     if web_search:
-        from web_context import ask_with_web
+        from rag_server.web_context import ask_with_web
         return ask_with_web(question, records, mode, theme, style)
     return ask_dataset(question, records, mode, theme, style)

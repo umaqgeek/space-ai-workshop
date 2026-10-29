@@ -57,4 +57,4 @@ The purpose is interpreting reference records, not deriving metrics from raw
 pixels. Real remote-sensing processing, calibration, segmentation, image
 classification and spatial calculations are outside this starter.
 
-Regenerate with `python3 scripts/generate_data.py` from the project root.
+Regenerate with `python3 data/generate_data.py` from the project root.

@@ -40,7 +40,7 @@ and plan. No Heroku resources are created by adding these files locally.
 
 Heroku detects Python from `requirements.txt`, installs Gunicorn, selects
 Python 3.14 from `.python-version`, and runs the `web` process bound to `$PORT`.
-The entry point is `webapp:application`. `python3 server.py` remains available
+The entry point is `backend.webapp:application`. `python3 -m backend.server` remains available
 as the dependency-free local development server.
 
 Verify after deployment:
@@ -53,7 +53,7 @@ Verify after deployment:
 
 Inspect errors using `heroku logs --tail`. Bundled sample files change through
 deployment; Data Explorer edits are stored separately in a local SQLite file
-under `SPACELAB_DATA_DIR` (default `.data`). They are immediately shared by workers
+under `SPACELAB_DATA_DIR` (default `data/database`). They are immediately shared by workers
 on the same filesystem. Heroku dyno filesystems are temporary and separate:
 these edits do not survive dyno replacement and are not shared across dynos.
 Use persistent storage before relying on durable edits in a hosted deployment.
@@ -95,7 +95,7 @@ Use Python 3.14 for parity with Heroku:
 ```sh
 python3.14 -m venv .venv
 .venv/bin/pip install -r requirements.txt
-.venv/bin/gunicorn webapp:application --bind 127.0.0.1:8081 --workers 2 --threads 4
+.venv/bin/gunicorn backend.webapp:application --bind 127.0.0.1:8081 --workers 2 --threads 4
 ```
 
 Visit http://127.0.0.1:8081 and test both views. Stop with Ctrl+C.

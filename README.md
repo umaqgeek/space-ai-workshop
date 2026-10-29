@@ -14,20 +14,20 @@ Requires Python **3.9 or newer**. The offline excerpt mode needs no additional
 Python packages, API key, model download, internet connection or Node installation.
 
 ```sh
-python3 server.py
+python3 -m backend.server
 ```
 
 Open **http://127.0.0.1:8080**. Keep the terminal running; press Ctrl+C to stop.
 The assistant initially selects **AI Ollama**. Choose **Offline · retrieved
 excerpts** to use retrieval without a model connection. Press Enter to submit
 a question or Shift+Enter for a new line; the Find insights button also submits.
-On Windows, use `py -3 server.py` if `python3` is unavailable.
-For a different port, run `python3 server.py --port 8081`.
+On Windows, use `py -3 -m backend.server` if `python3` is unavailable.
+For a different port, run `python3 -m backend.server --port 8081`.
 
 To share the app on a trusted local network:
 
 ```sh
-python3 server.py --host 0.0.0.0 --port 8080
+python3 -m backend.server --host 0.0.0.0 --port 8080
 ```
 
 Other devices visit `http://<server-LAN-IP>:8080`. Check firewall and network
@@ -98,7 +98,7 @@ rankings, map markers and all download formats without restarting. Previously
 shown answers are cleared after a save. Stale edits return a conflict instead of
 overwriting newer changes; cancel and reopen the editor to refresh the record.
 
-Edits are stored in `.data/record-edits.sqlite3`, separate from the generated
+Edits are stored in `data/database/record-edits.sqlite3`, separate from the generated
 sample files. Set `SPACELAB_DATA_DIR` to choose another storage directory.
 Back up that directory to preserve edits. Regenerating the sample files preserves
 saved overrides. Heroku's local filesystem is temporary; durable hosted editing
@@ -121,12 +121,12 @@ The backend uses [Ollama's chat endpoint](https://docs.ollama.com/api/chat).
 Configure the model or endpoint when starting the server:
 
 ```sh
-OLLAMA_MODEL=qwen3:4b OLLAMA_URL=http://127.0.0.1:11434 python3 server.py
+OLLAMA_MODEL=qwen3:4b OLLAMA_URL=http://127.0.0.1:11434 python3 -m backend.server
 ```
 
 The adapter expects Ollama's API format. Changing the endpoint alone does not
 add support for another provider's authentication or API schema. A different
-Ollama model may require adjustments to the `think` option and prompt in `rag.py`.
+Ollama model may require adjustments to the `think` option and prompt in `rag_server/rag.py`.
 
 Allow sufficient memory for your selected model. The model socket timeout is 60
 seconds locally and 20 seconds on Heroku. Requests fall back to labelled excerpts if the model is unavailable or its
@@ -149,28 +149,34 @@ Excerpt composer OR local Qwen via Ollama
 Answer + inspectable source cards → JSON response export
 ```
 
+The Architecture page lists the component folders and their responsibilities:
+`frontend/` for the browser, `backend/` for the API gateway, `rag_server/` for
+retrieval and AI context, `data/` for datasets and storage, `docs/` for diagrams
+and guides, and `tests/` for shared verification. The backend serves the frontend
+and calls the RAG engine in the same Python process.
+
 Retrieval runs before generation. No model training or vector database is
 required. BM25 scores indicate lexical relevance, not factual confidence.
 
 ## Reuse for another space-tech project
 
-The separate [sample-data folder](sample-data/README.md) contains 103 invented
+The separate [sample-data folder](data/sample-data/README.md) contains 103 invented
 observations across 28 locations across all 13 Malaysian states and three federal territories and four themes. These are example
 inputs, not real satellite measurements or imagery.
 
-1. Use `sample-data/observations.json` and its data dictionary as the record
+1. Use `data/sample-data/observations.json` and its data dictionary as the record
    schema. The server reads the dataset and saved edits for each request.
-2. Edit `scripts/generate_data.py` and regenerate JSON, CSV and GeoJSON together:
+2. Edit `data/generate_data.py` and regenerate JSON, CSV and GeoJSON together:
 
    ```sh
-   python3 scripts/generate_data.py
+   python3 data/generate_data.py
    ```
 
-3. Adapt `SYSTEM_PROMPT`, topic aliases and `THEME_TOKENS` in `rag.py` to your
+3. Adapt `SYSTEM_PROMPT`, topic aliases and `THEME_TOKENS` in `rag_server/rag.py` to your
    domain. Keep the citation and insufficient-evidence rules.
-4. Update validation in `webapp.py` and the topic dropdowns in `app/index.html`
+4. Update validation in `backend/webapp.py` and the topic dropdowns in `frontend/index.html`
    when introducing new themes. Update example questions, dataset statistics,
-   labels and coordinate-plot bounds in `app/index.html` and `app/app.js` for a
+   labels and coordinate-plot bounds in `frontend/index.html` and `frontend/app.js` for a
    different region or corpus.
 5. Update practice queries and tests to match the new corpus and expected sources.
 
@@ -184,7 +190,7 @@ hyphen, three digits). Extend that validation if your IDs use a different format
 
 ```sh
 python3 -m unittest discover -s tests -v
-node --check app/app.js
+node --check frontend/app.js
 ```
 
 The Python suite covers retrieval constraints, comparisons, missing evidence,
@@ -204,21 +210,34 @@ matching records in the bundled dataset, not every real-world location.
 The sample corpus cannot establish live conditions or predict events. The
 map uses bundled Natural Earth outlines with separate scales for Peninsular and
 East Malaysia. It provides geographic context, not a spatial-analysis engine.
-See [map data attribution](app/maps/README.md).
+See [map data attribution](frontend/maps/README.md).
 
 ## Project layout
 
 ```text
-server.py                  Dependency-free local development server
-webapp.py                  Shared HTTP routes and production WSGI entry point
-record_store.py            Validated persistent edits and current-data exports
+frontend/                  Browser UI, pages, styles, JavaScript and map assets
+backend/
+  server.py                Dependency-free local development server
+  webapp.py                HTTP/API gateway and production WSGI entry point
+rag_server/
+  rag.py                   Retrieval, prompts, excerpt answers and Ollama adapter
+  web_context.py           Web-search evidence and AI context builder
+data/
+  sample-data/             Datasets, dictionary and practice queries
+  generate_data.py         Reproducible synthetic data generator
+  record_store.py          SQLite persistence, validation and current-data exports
+  database/                Local SQLite database (ignored by Git)
+docs/
+  diagrams/                Architecture and process-flow SVG documents
+  HEROKU.md                Deployment plan
+tests/                     Unit and HTTP integration checks
 Procfile                   Heroku web process using Gunicorn
 requirements.txt           Production server dependency
-rag.py                     Retrieval, excerpt answers and optional Ollama adapter
-web_context.py             Opt-in Ollama web-search evidence and model context
-app/                       HTML, CSS and browser JavaScript
-sample-data/               JSON, CSV, GeoJSON, dictionary and practice queries
-scripts/generate_data.py   Reproducible synthetic data generator
-tests/                     Python unit and HTTP integration checks
-docs/HEROKU.md             Deployment plan and Cloudflare connector removal
 ```
+
+Run commands from the repository root. The Python components are packages;
+start the local server with `python3 -m backend.server`. These folders separate
+responsibilities within the existing application; the backend still serves the
+frontend and calls the RAG engine in the same process. API, diagram and dataset
+download URLs remain unchanged. Deployment keeps `docs/diagrams/` available
+because the Architecture page serves those SVG documents.

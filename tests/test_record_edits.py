@@ -8,9 +8,9 @@ from concurrent.futures import ThreadPoolExecutor
 from unittest.mock import patch
 from wsgiref.util import setup_testing_defaults
 
-import rag
-import record_store
-from webapp import dispatch, application
+from rag_server import rag
+from data import record_store
+from backend.webapp import dispatch, application
 
 
 class RecordEditTests(unittest.TestCase):
@@ -120,7 +120,7 @@ class RecordEditTests(unittest.TestCase):
         self.assertEqual(record_store.get_records()[0]['value'], 700)
 
     def test_failed_save_is_reported_and_does_not_change_data(self):
-        with patch('record_store.sqlite3.connect', side_effect=OSError('disk unavailable')):
+        with patch('data.record_store.sqlite3.connect', side_effect=OSError('disk unavailable')):
             status, payload = self.save({'value': 500})
         self.assertEqual(status, 500)
         self.assertIn('have not been saved', json.loads(payload)['error'])

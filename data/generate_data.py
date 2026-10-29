@@ -3,7 +3,7 @@ import csv
 import json
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1] / 'sample-data'
+ROOT = Path(__file__).resolve().parent / 'sample-data'
 # Place, state / federal territory, approximate latitude / longitude, coastal sample.
 # Keep the original six places first so existing citation IDs remain stable.
 SITES = [

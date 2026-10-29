@@ -9,7 +9,7 @@ import urllib.request
 from datetime import datetime, timezone
 from urllib.parse import urlsplit
 
-import rag
+from rag_server import rag
 
 SEARCH_URL = 'https://ollama.com/api/web_search'
 MAX_RESPONSE_BYTES = 1_000_000

@@ -45,7 +45,7 @@ as the dependency-free local development server.
 
 Verify after deployment:
 
-- `/api/health` reports `ok` and 22 records for the bundled dataset.
+- `/api/health` reports `ok` and 103 records for the bundled dataset.
 - The assistant answers `What do the flood observations in Klang show?` with
   source `FLOOD-001` and the synthetic 142 ha value.
 - Data explorer and CSV/JSON/GeoJSON downloads work.

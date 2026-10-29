@@ -38,6 +38,22 @@ class RetrievalTests(unittest.TestCase):
         self.assertEqual(result['status'], 'insufficient')
         self.assertEqual(result['sources'], [])
 
+    def test_state_queries_only_retrieve_that_state(self):
+        for state, count in [('Selangor', 6), ('Sabah', 3), ('Sarawak', 2), ('Perak', 2)]:
+            with self.subTest(state=state):
+                sources = rag.retrieve(f'flood observations in {state}', self.records, top_k=6)
+                self.assertEqual(len(sources), count)
+                self.assertTrue(all(r['state'] == state for r in sources))
+
+    def test_comparison_across_east_and_peninsular_malaysia(self):
+        sources = rag.retrieve('Compare vegetation in Kuching and George Town', self.records)
+        self.assertEqual({r['location'] for r in sources}, {'Kuching', 'George Town'})
+        self.assertTrue(all(r['theme'] == 'vegetation' for r in sources))
+
+    def test_place_names_require_whole_words(self):
+        sources = rag.retrieve('flood observations in Miriaman', self.records, top_k=6)
+        self.assertGreater(len({r['location'] for r in sources}), 1)
+
     def test_top_k_limits_evidence(self):
         self.assertEqual(len(rag.retrieve('flood', self.records, top_k=1)), 1)
         self.assertEqual(len(rag.retrieve('flood', self.records, top_k=6)), 6)
@@ -77,6 +93,52 @@ class RetrievalTests(unittest.TestCase):
         self.assertEqual(result['mode'], 'qwen')
         self.assertIsNone(result['notice'])
 
+    def test_offline_citations_only_appear_in_footer(self):
+        result = rag.ask('Compare flood observations in Klang and Sepang', self.records)
+        body, refs = result['answer'].rsplit('\n\nRefs: ', 1)
+        self.assertNotRegex(body, r'\[[A-Z]+-\d{3}\]')
+        self.assertEqual(set(refs.split(', ')), {'[FLOOD-001]', '[FLOOD-004]'})
+        self.assertIn('142', body)
+        self.assertIn('37', body)
+
+    def test_qwen_citations_move_to_deduplicated_footer(self):
+        result = self.qwen_response('Possible water is 142 ha [FLOOD-001].\n\nInvented observation [FLOOD-001].')
+        self.assertEqual(result['mode'], 'qwen')
+        self.assertIn('Possible water is 142 ha.\n\nInvented observation.', result['answer'])
+        self.assertTrue(result['answer'].endswith('\n\nRefs: [FLOOD-001]'))
+        self.assertEqual(result['answer'].count('[FLOOD-001]'), 1)
+
+    def test_grouped_vegetation_citations_move_below_response(self):
+        prose = ('As of 2026-10-15, Kota Kinabalu had a fictional NDVI value of 0.76, '
+                 'while Kuching had a fictional NDVI value of 0.5. Higher NDVI can '
+                 'indicate greener vegetation, though it does not establish species, '
+                 'crop health, or biodiversity [VEGETATION-021, VEGETATION-023]. '
+                 'Both observations are limited by clouds and mixed pixels '
+                 '[VEGETATION-021, VEGETATION-023].')
+        response = json.dumps({'message': {'content': prose}}).encode()
+        with patch('rag.urllib.request.urlopen', return_value=io.BytesIO(response)):
+            result = rag.ask('Compare vegetation in Kota Kinabalu and Kuching', self.records, mode='qwen')
+        self.assertEqual(result['mode'], 'qwen')
+        body, refs = result['answer'].rsplit('\n\nRefs: ', 1)
+        self.assertNotIn('[VEGETATION-', body)
+        self.assertIn('biodiversity. Both observations', body)
+        self.assertTrue(body.endswith('clouds and mixed pixels.'))
+        self.assertEqual(refs, '[VEGETATION-021], [VEGETATION-023]')
+
+    def test_mixed_single_and_grouped_citations_are_deduplicated(self):
+        answer = rag.move_references_below('First [FLOOD-001]. Second [ FLOOD-004,FLOOD-001 ].')
+        self.assertEqual(answer, 'First. Second.\n\nRefs: [FLOOD-001], [FLOOD-004]')
+
+    def test_grouped_fabricated_citation_fails_validation(self):
+        result = self.qwen_response('Possible water is 142 ha [FLOOD-001, FLOOD-999].')
+        self.assertEqual(result['mode'], 'offline')
+        self.assertIn('citation checks', result['notice'])
+        self.assertNotIn('FLOOD-999', result['answer'])
+
+    def test_no_evidence_has_no_reference_footer(self):
+        result = rag.ask('What is the mass of Jupiter?', self.records)
+        self.assertNotIn('Refs:', result['answer'])
+
     def test_qwen_fabricated_or_missing_citations_fall_back(self):
         for response in ('The answer is 142 ha.', 'The answer is 142 ha [FLOOD-999].'):
             with self.subTest(response=response):
@@ -86,12 +148,36 @@ class RetrievalTests(unittest.TestCase):
 
 
 class DataTests(unittest.TestCase):
+    def test_nationwide_coverage_and_theme_availability(self):
+        records = rag.load_records()
+        self.assertEqual(len({r['location'] for r in records}), 28)
+        self.assertEqual({r['state'] for r in records}, {
+            'Johor', 'Kedah', 'Kelantan', 'Melaka', 'Negeri Sembilan', 'Pahang',
+            'Penang', 'Perak', 'Perlis', 'Sabah', 'Sarawak', 'Selangor',
+            'Terengganu', 'Kuala Lumpur', 'Putrajaya', 'Labuan',
+        })
+        for place in {r['location'] for r in records}:
+            themes = {r['theme'] for r in records if r['location'] == place}
+            self.assertTrue({'flood', 'vegetation', 'land-use'} <= themes)
+        self.assertEqual(sum(r['theme'] == 'coastal' for r in records), 19)
+
+    def test_generator_reproduces_bundled_exports(self):
+        import contextlib
+        import tempfile
+        from scripts import generate_data
+
+        with tempfile.TemporaryDirectory() as directory:
+            with patch.object(generate_data, 'ROOT', Path(directory)), contextlib.redirect_stdout(io.StringIO()):
+                generate_data.generate()
+            for name in ('observations.json', 'observations.csv', 'observations.geojson'):
+                self.assertEqual((Path(directory) / name).read_bytes(), (ROOT / 'sample-data' / name).read_bytes())
+
     def test_export_formats_agree(self):
         records = rag.load_records()
         with (ROOT / 'sample-data/observations.csv').open() as f:
             rows = list(csv.DictReader(f))
         geo = json.loads((ROOT / 'sample-data/observations.geojson').read_text())
-        self.assertEqual(len(records), 22)
+        self.assertEqual(len(records), 103)
         self.assertEqual({r['id'] for r in records}, {r['id'] for r in rows})
         self.assertEqual(geo['type'], 'FeatureCollection')
         self.assertEqual([f['properties'] for f in geo['features']], records)

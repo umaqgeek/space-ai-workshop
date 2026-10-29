@@ -39,7 +39,7 @@ async function api(path, options) {
 function sourceCard(record, inAnswer = false) {
   const r = Object.fromEntries(Object.entries(record).map(([key, value]) => [key, escapeHtml(value)]));
   return `<details class="source"><summary><span class="tag">${r.id}</span>${r.title}</summary>
-    <p>${r.description}</p><dl><dt>Observation date</dt><dd>${r.observation_date}</dd>
+    <p>${r.description}</p><dl><dt>State / federal territory</dt><dd>${r.state}</dd><dt>Observation date</dt><dd>${r.observation_date}</dd>
     <dt>Baseline date</dt><dd>${r.baseline_date || 'Not applicable'}</dd><dt>Coordinates</dt><dd>${r.latitude}° N, ${r.longitude}° E</dd>
     <dt>Sensor example</dt><dd>${r.sensor}</dd><dt>Metric</dt><dd>${r.metric}: <strong>${r.value} ${r.unit}</strong></dd>
     <dt>Cloud cover</dt><dd>${r.cloud_cover_pct}%${record.theme === 'flood' ? ' (not used for radar; placeholder)' : ''}</dd>
@@ -49,18 +49,19 @@ function sourceCard(record, inAnswer = false) {
 }
 
 function responseContent(result) {
-  // Move only our own presentation wrappers; preserve model prose and citations.
+  // Remove presentation wrappers while keeping the reference footer below the prose.
   const wrappers = [
     'Synthetic sample data. AI-generated answer; verify claims against the source cards.',
     'These are synthetic sample observations, not real-world measurements.',
     'These are retrieved excerpts, not an LLM-generated analysis. Verify each claim against the source cards. Only the displayed records were retrieved; this is not a complete regional ranking.',
   ];
-  let answer = result.answer;
+  const refs = result.answer.match(/\n\n(Refs: [^\n]+)$/);
+  let answer = refs ? result.answer.slice(0, refs.index) : result.answer;
   for (const wrapper of wrappers) {
     if (answer.startsWith(wrapper)) answer = answer.slice(wrapper.length).trim();
     if (answer.endsWith(wrapper)) answer = answer.slice(0, -wrapper.length).trim();
   }
-  return answer;
+  return refs ? `${answer}\n\n${refs[1]}` : answer;
 }
 
 function renderResponse(result) {
@@ -131,12 +132,14 @@ function renderExplorer() {
   $('records-list').innerHTML = filtered.map(r => sourceCard(r)).join('') || '<div class="card">No records match. Try another search or application.</div>';
   const sites = [...new Map(filtered.map(r => [r.location,r])).values()];
   const points = sites.map(r => {
-    const x = 85 + (r.longitude - 100.9) / 1.1 * 340;
-    const y = 405 - (r.latitude - 2.5) / 1.5 * 340;
-    const labelX = x > 340 ? x-10 : x+11;
-    return `<g><title>${escapeHtml(r.location)}: ${r.latitude}, ${r.longitude}</title><circle cx="${x}" cy="${y}" r="7" fill="#507648" stroke="white" stroke-width="3"/><text x="${labelX}" y="${y-13}" text-anchor="${x>340?'end':'start'}" fill="#3c5738" font-size="13">${escapeHtml(r.location)}</text></g>`;
+    const east = r.longitude > 108;
+    const x = east ? 280 + (r.longitude - 109) / 11 * 185 : 35 + (r.longitude - 99) / 6 * 185;
+    const y = 405 - (r.latitude - 0.5) / 7 * 330;
+    const labelX = x > 390 ? x-9 : x+9;
+    const label = escapeHtml(`${r.location}, ${r.state}`);
+    return `<g class="map-point" tabindex="0" role="img" aria-label="${label}: ${r.latitude}, ${r.longitude}"><title>${label}: ${r.latitude}, ${r.longitude}</title><circle cx="${x}" cy="${y}" r="5" fill="#507648" stroke="white" stroke-width="2"/><text class="map-label" x="${labelX}" y="${y-10}" text-anchor="${x>390?'end':'start'}" fill="#3c5738" font-size="12" stroke="white" stroke-width="3" paint-order="stroke">${label}</text></g>`;
   }).join('');
-  $('location-map').innerHTML = `<defs><pattern id="grid" width="50" height="50" patternUnits="userSpaceOnUse"><path d="M 50 0 L 0 0 0 50" fill="none" stroke="#dce5d3" stroke-width="1"/></pattern></defs><rect width="500" height="480" fill="url(#grid)"/><text x="25" y="32" font-size="11" fill="#7a8f6b">N ↑</text><text x="25" y="458" font-size="10" fill="#7a8f6b">100.9° E → 102.0° E / 2.5° N → 4.0° N</text>${points}`;
+  $('location-map').innerHTML = `<defs><pattern id="grid" width="50" height="50" patternUnits="userSpaceOnUse"><path d="M 50 0 L 0 0 0 50" fill="none" stroke="#dce5d3" stroke-width="1"/></pattern></defs><rect width="500" height="480" fill="url(#grid)"/><text x="25" y="25" font-size="11" fill="#7a8f6b">N ↑</text><text x="25" y="50" font-size="12" fill="#3c5738">Peninsular Malaysia</text><text x="275" y="50" font-size="12" fill="#3c5738">East Malaysia</text><path d="M250 65V430" stroke="#dce5d3" stroke-dasharray="4 4"/><text x="25" y="458" font-size="10" fill="#7a8f6b">99–105° E · 0.5–7.5° N</text><text x="275" y="458" font-size="10" fill="#7a8f6b">109–120° E · 0.5–7.5° N</text>${points}`;
 }
 $('data-search').addEventListener('input',renderExplorer);
 $('data-theme').addEventListener('change',renderExplorer);
@@ -152,6 +155,7 @@ async function init() {
   try {
     records = await api('/api/records');
     document.querySelectorAll('.record-count').forEach(el => {el.textContent=records.length;});
+    document.querySelectorAll('.location-count').forEach(el => {el.textContent=new Set(records.map(r => r.location)).size;});
     $('connection').textContent='Dataset ready';
     renderExplorer();
   } catch (error) {

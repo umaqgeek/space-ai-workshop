@@ -99,3 +99,7 @@
 .diagram-download{display:flex;justify-content:flex-end}
 .diagram-download a{font-size:12px}
 @media(max-width:680px){.diagram-summary{padding:19px}.diagram-summary-title{font-size:21px}.diagram-content{padding:17px 19px 19px}.diagram-summary .eyebrow{font-size:8px}}
+
+.map-point .map-label { display: none; }
+.map-point:hover .map-label, .map-point:focus .map-label { display: block; }
+.map-point:focus circle { stroke: #243d20; }

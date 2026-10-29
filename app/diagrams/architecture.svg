@@ -49,7 +49,7 @@
   <rect class="box" x="760" y="418" width="250" height="120" rx="10"/>
   <text class="heading" x="780" y="450">sample-data/</text>
   <text class="code" x="780" y="479">observations.json</text>
-  <text class="body" x="780" y="504">22 records · 4 themes</text>
+  <text class="body" x="780" y="504">103 records · 4 themes</text>
   <text class="body" x="780" y="525">CSV + GeoJSON exports</text>
   <path class="line" d="M885 538V587"/>
   <text class="body" x="775" y="570">load_records() at startup</text>

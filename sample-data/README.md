@@ -11,15 +11,18 @@ boundaries or a record of an actual event.
 
 | File | Purpose |
 | --- | --- |
-| `observations.json` | Authoritative app input: 22 source records |
+| `observations.json` | Authoritative app input: 103 source records |
 | `observations.csv` | The same records for spreadsheets |
 | `observations.geojson` | The same records as WGS84 Point features, longitude first |
 | `practice-queries.json` | Questions, expected source IDs and discussion points |
 
-Six locations: Klang, Shah Alam, Kuala Selangor, Sepang, Hulu Langat and Sabak
-Bernam. Each has flood, vegetation and land-use records. Four have coastal
-records; **Shah Alam and Hulu Langat deliberately have none**. Missing records
-support the evidence-insufficiency exercise.
+The corpus covers **28 locations across all 13 Malaysian states and three federal
+territories**, including Sabah, Sarawak and Labuan. Each location has flood,
+vegetation and land-use records (84 total); 19 locations also have coastal
+records. Inland locations, including **Shah Alam and Hulu Langat, deliberately
+have no coastal records** to support the evidence-insufficiency exercise.
+The generator lists all places, states, approximate coordinates and coastal
+scenario flags. Original Selangor citation IDs and values remain stable.
 
 Every observation is dated **2026-10-15**. Change metrics compare against the
 fictional baseline **2025-10-15**. No time series, live monitoring, predictions,

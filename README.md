@@ -96,8 +96,8 @@ required. BM25 scores indicate lexical relevance, not factual confidence.
 
 ## Reuse for another space-tech project
 
-The separate [sample-data folder](sample-data/README.md) contains 22 invented
-observations across six Selangor locations and four themes. These are example
+The separate [sample-data folder](sample-data/README.md) contains 103 invented
+observations across 28 locations across all 13 Malaysian states and three federal territories and four themes. These are example
 inputs, not real satellite measurements or imagery.
 
 1. Use `sample-data/observations.json` and its data dictionary as the record
@@ -144,7 +144,7 @@ semantic search. Unknown locations are not geocoded, and top-k retrieval cannot
 establish complete regional rankings.
 
 The sample corpus cannot establish live conditions or predict events. The
-coordinate plot is a schematic with fixed bounds for the included Selangor data,
+coordinate plot uses separate schematic panels for Peninsular and East Malaysia,
 not a geographic basemap or a spatial-analysis engine.
 
 ## Project layout

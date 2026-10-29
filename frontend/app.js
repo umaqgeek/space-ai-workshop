@@ -93,6 +93,42 @@ function responseContent(result) {
   return answer;
 }
 
+function formatAnswer(value) {
+  // Escape model output before adding the small set of supported HTML tags.
+  const inline = text => escapeHtml(text).replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>');
+  const blocks = [];
+  let paragraph = [], items = [], listType = null;
+  const flushParagraph = () => {
+    if (paragraph.length) blocks.push(`<p>${paragraph.map(inline).join('<br>')}</p>`);
+    paragraph = [];
+  };
+  const flushList = () => {
+    if (items.length) blocks.push(`<${listType}>${items.map(item => `<li>${inline(item)}</li>`).join('')}</${listType}>`);
+    items = [];
+    listType = null;
+  };
+  for (const line of String(value ?? '').replace(/\r\n?/g, '\n').split('\n')) {
+    const bullet = line.match(/^\s*[-*+]\s+(.+)$/);
+    const numbered = line.match(/^\s*\d+[.)]\s+(.+)$/);
+    if (bullet || numbered) {
+      flushParagraph();
+      const type = bullet ? 'ul' : 'ol';
+      if (listType && listType !== type) flushList();
+      listType = type;
+      items.push((bullet || numbered)[1]);
+    } else if (!line.trim()) {
+      flushParagraph();
+      flushList();
+    } else {
+      flushList();
+      paragraph.push(line);
+    }
+  }
+  flushParagraph();
+  flushList();
+  return blocks.join('');
+}
+
 function safeWebUrl(value) {
   try {
     const url = new URL(value);
@@ -117,7 +153,7 @@ function renderResponse(result) {
   return `<article class="response-primary" aria-labelledby="response-title">
       <div class="answer-header"><div><span class="eyebrow">YOUR ANSWER</span><h2 id="response-title">${title}</h2></div><span class="tag response-mode ${generated ? 'generated' : ''}">${generated ? 'AI GENERATED' : computed ? 'DATASET RESULTS' : 'EXCERPT MODE'}</span></div>
       <p class="response-question">${escapeHtml(result.question)}</p>
-      <div class="answer-text">${escapeHtml(responseContent(result))}</div>
+      <div class="answer-text">${formatAnswer(responseContent(result))}</div>
       <div class="response-context"><span class="tag">${webSources.length ? result.sources.length ? 'DATASET + WEB' : 'WEB REFERENCES' : 'SYNTHETIC DATA'}</span><span>${referenceCount} reference${referenceCount === 1 ? '' : 's'} retrieved</span>${webEnabled ? `<span class="web-search-status">${webSources.length ? 'Web search completed' : 'Web search unavailable or no results'}</span>` : ''}${result.notice ? '<span class="fallback-label">See clarification for details</span>' : ''}</div>
     </article>
     <div class="response-support" aria-label="Answer details">

@@ -39,7 +39,8 @@ server has no authentication and is not intended for public internet hosting.
 - **Intelligence assistant:** natural-language questions, topic filters, automatic
   evidence selection and answer style, with inspectable source IDs, values, dates
   and limits.
-- **Data explorer:** search and edit records, inspect location markers on a
+- **Data explorer:** browse collapsible application groups, search and edit records,
+  import CSV updates or new observations, inspect location markers on a
   Malaysia outline map, and download the current corpus as CSV, JSON or GeoJSON.
 - **Response export:** download an answer and its retrieved sources as JSON.
 - **Architecture:** view the system architecture and request process flow, with
@@ -101,8 +102,36 @@ overwriting newer changes; cancel and reopen the editor to refresh the record.
 Edits are stored in `data/database/record-edits.sqlite3`, separate from the generated
 sample files. Set `SPACELAB_DATA_DIR` to choose another storage directory.
 Back up that directory to preserve edits. Regenerating the sample files preserves
-saved overrides. Heroku's local filesystem is temporary; durable hosted editing
+saved overrides and CSV-added records. Heroku's local filesystem is temporary; durable hosted editing
 requires persistent storage before relying on saves across dyno replacements.
+
+## Import observations from CSV
+
+In Data Explorer, expand **Upload CSV**, choose a file, then select **Upload and
+save**. Download the current CSV as a template. Upload only the rows you want to
+change: matching `id` values update existing records, new IDs add observations,
+and omitted records stay unchanged. An import is atomic: an invalid row rejects
+the entire file with a row number. Duplicate IDs within a file are rejected.
+
+For existing records, `id` and the editable columns being changed are enough
+(for example, `id,value`). For new records, include `id`, `theme`, `synthetic`
+and every editable column: `title`, `location`, `state`, `latitude`, `longitude`,
+`observation_date`, `baseline_date`, `sensor`, `value`, `cloud_cover_pct`, and
+`limitations`. Blank baseline dates apply to flood and vegetation; land-use and
+coastal observations require an earlier baseline date. Use UTF-8 CSV with a
+header, up to 2 MB and 2,000 rows per upload.
+
+IDs use `FLOOD-029`, `VEGETATION-029`, `LANDUSE-029` or `COASTAL-029` format
+(uppercase prefix and three digits). Application, metric and units must match
+the supported schema. This app accepts synthetic teaching data only; include
+`synthetic=True` for new observations. Description and quality are recalculated;
+existing provenance is retained and new observations are labelled user-uploaded
+synthetic data. Uploaded description, quality and provenance columns are ignored.
+
+Imported records share the existing SQLite store and immediately appear in maps,
+answers, rankings, editing and downloads. Matching IDs overwrite current values
+for the supplied editable columns. Individual record edits still detect stale
+versions. The same Heroku persistence limitations described above apply to imports.
 
 ## Optional local Qwen
 
@@ -142,16 +171,47 @@ Browser question + retrieval settings
           ↓ POST /api/ask
 Python retrieval service (BM25 + place/topic constraints)
           ↓
-JSON knowledge base → retrieved reference records
+Bundled JSON + SQLite edits / CSV additions → reference records
           ↓
 Excerpt composer OR local Qwen via Ollama
           ↓
 Answer + inspectable source cards → JSON response export
 ```
 
+Data Explorer groups observations into collapsible application sections with
+counts. Search and application filters narrow both groups and map markers;
+matching groups open automatically when searching or filtering.
+
+The shared data path is:
+
+```text
+Record editor → POST /api/records/{id} → validate + stale-version check
+CSV upload    → POST /api/records/import → validate all rows + atomic upsert
+                                      ↓
+                   SQLite edits and added observations
+                                      ↓
+          Merge with bundled JSON on each data-reading request
+                                      ↓
+              Questions · rankings · Explorer · downloads
+```
+
+| Route | Purpose |
+| --- | --- |
+| `GET /api/records` | Current merged observations, including imported additions |
+| `POST /api/records/{id}` | Save editable fields with the original record for conflict detection |
+| `POST /api/records/import` | UTF-8 `text/csv`; returns `added`, `updated` and current `records` |
+| `GET /sample-data/observations.{csv,json,geojson}` | Export current merged data; CSV also provides the import template |
+
+The upload transaction locks writes while reading the current dataset,
+validating rows and saving the batch. Imports overwrite supplied editable
+fields for matching IDs; omitted columns and records are preserved. Failed
+validation rolls back the batch. Imports and edits share one SQLite table.
+Only the importing browser refreshes automatically; other open browsers must
+reload to display the latest records.
+
 The Architecture page lists the component folders and their responsibilities:
 `frontend/` for the browser, `backend/` for the API gateway, `rag_server/` for
-retrieval and AI context, `data/` for datasets and storage, `docs/` for diagrams
+retrieval and AI context, `data/` for datasets, CSV validation and SQLite storage, `docs/` for diagrams
 and guides, and `tests/` for shared verification. The backend serves the frontend
 and calls the RAG engine in the same Python process.
 
@@ -165,7 +225,7 @@ observations across 28 locations across all 13 Malaysian states and three federa
 inputs, not real satellite measurements or imagery.
 
 1. Use `data/sample-data/observations.json` and its data dictionary as the record
-   schema. The server reads the dataset and saved edits for each request.
+   schema. The server reads the dataset, saved edits and CSV additions for each request.
 2. Edit `data/generate_data.py` and regenerate JSON, CSV and GeoJSON together:
 
    ```sh
@@ -225,7 +285,7 @@ rag_server/
 data/
   sample-data/             Datasets, dictionary and practice queries
   generate_data.py         Reproducible synthetic data generator
-  record_store.py          SQLite persistence, validation and current-data exports
+  record_store.py          SQLite persistence, CSV imports and current-data exports
   database/                Local SQLite database (ignored by Git)
 docs/
   diagrams/                Architecture and process-flow SVG documents

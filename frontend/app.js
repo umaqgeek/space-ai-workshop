@@ -3,7 +3,7 @@ const $ = id => document.getElementById(id);
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
 const titles = {assistant:'Intelligence assistant', explorer:'Data explorer', architecture:'Architecture'};
 let records = [], latest = null, malaysiaOutline = null;
-let editingRecord = null, editDraft = null, savingRecord = false, dataVersion = 0;
+let editingRecord = null, editDraft = null, savingRecord = false, dataVersion = 0, importingCsv = false, datasetReady = false;
 const malaysianStates = ['Johor', 'Kedah', 'Kelantan', 'Melaka', 'Negeri Sembilan', 'Pahang', 'Penang', 'Perak', 'Perlis', 'Sabah', 'Sarawak', 'Selangor', 'Terengganu', 'Kuala Lumpur', 'Putrajaya', 'Labuan'];
 function showView(view) {
   if (!titles[view]) view = 'assistant';
@@ -249,8 +249,15 @@ function renderExplorer() {
   const query = $('data-search').value.toLowerCase();
   const theme = $('data-theme').value;
   const filtered = records.filter(r => (theme === 'all' || r.theme === theme) && JSON.stringify(r).toLowerCase().includes(query));
-  $('record-summary').textContent = `${filtered.length} of ${records.length} observations · expand a record to inspect it`;
-  $('records-list').innerHTML = filtered.map(r => sourceCard(r)).join('') || '<div class="card">No records match. Try another search or application.</div>';
+  $('record-summary').textContent = `${filtered.length} of ${records.length} observations · expand an application group, then a record`;
+  const openGroups = new Set([...$('records-list').querySelectorAll('[data-record-group][open]')].map(group => group.dataset.recordGroup));
+  const applications = {flood:'Flood monitoring', vegetation:'Vegetation', 'land-use':'Land-use change', coastal:'Coastal observations'};
+  $('records-list').innerHTML = Object.entries(applications).map(([key, label]) => {
+    const members = filtered.filter(record => record.theme === key);
+    if (!members.length) return '';
+    const open = openGroups.has(key) || editingRecord?.theme === key || theme !== 'all' || Boolean(query);
+    return `<details class="record-group" data-record-group="${key}" ${open ? 'open' : ''}><summary>${label}<span class="reference-count">${members.length} observations</span></summary><div class="record-group-content">${members.map(record => sourceCard(record)).join('')}</div></details>`;
+  }).join('') || '<div class="card">No records match. Try another search or application.</div>';
   const sites = [...new Map(filtered.map(r => [JSON.stringify([r.location, r.state, r.longitude, r.latitude]), r])).values()];
   const points = sites.map(r => {
     const [x, y] = projectLocation(r.longitude, r.latitude);
@@ -261,8 +268,11 @@ function renderExplorer() {
   $('location-map').innerHTML = `<defs><pattern id="grid" width="50" height="50" patternUnits="userSpaceOnUse"><path d="M 50 0 L 0 0 0 50" fill="none" stroke="#ffffff1a" stroke-width="1"/></pattern></defs><rect width="500" height="480" fill="url(#grid)"/><text x="25" y="25" font-size="11" fill="#b3bfd4">N ↑</text><text x="25" y="50" font-size="12" fill="#e2e8f0">Peninsular Malaysia</text><text x="275" y="50" font-size="12" fill="#e2e8f0">East Malaysia</text><path d="M250 65V430" stroke="#ffffff1a" stroke-dasharray="4 4"/><text x="25" y="458" font-size="10" fill="#b3bfd4">99–105° E · 0.5–7.5° N</text><text x="275" y="458" font-size="10" fill="#b3bfd4">109–120° E · 0.5–7.5° N</text><g aria-hidden="true" pointer-events="none">${outlinePaths()}</g>${points}`;
 }
 function setEditorControls() {
-  $('data-search').disabled = Boolean(editingRecord);
-  $('data-theme').disabled = Boolean(editingRecord);
+  $('data-theme').disabled = Boolean(editingRecord) || importingCsv;
+  $('data-search').disabled = Boolean(editingRecord) || importingCsv;
+  $('csv-file').disabled = Boolean(editingRecord) || importingCsv || !datasetReady;
+  $('csv-import-button').disabled = Boolean(editingRecord) || importingCsv || !datasetReady;
+  $('records-list').querySelectorAll('[data-edit-record]').forEach(button => {button.disabled = Boolean(editingRecord) || importingCsv;});
 }
 
 $('records-list').addEventListener('input', event => {
@@ -270,7 +280,7 @@ $('records-list').addEventListener('input', event => {
 });
 $('records-list').addEventListener('click', async event => {
   const button = event.target.closest('[data-edit-record], [data-cancel-edit]');
-  if (!button || savingRecord) return;
+  if (!button || savingRecord || importingCsv) return;
   if (button.hasAttribute('data-cancel-edit')) {
     savingRecord = true;
     const id = editingRecord.id;
@@ -332,6 +342,42 @@ $('records-list').addEventListener('submit', async event => {
     setEditorControls();
   }
 });
+$('csv-import-form').addEventListener('submit', async event => {
+  event.preventDefault();
+  if (editingRecord || importingCsv || !datasetReady) return;
+  const file = $('csv-file').files[0];
+  if (!file) return;
+  const status = $('csv-import-status');
+  status.classList.remove('error');
+  if (file.size > 2 * 1024 * 1024 || !file.size) {
+    status.classList.add('error');
+    status.textContent = 'Choose a non-empty CSV file up to 2 MB.';
+    return;
+  }
+  importingCsv = true;
+  setEditorControls();
+  $('csv-import-form').setAttribute('aria-busy', 'true');
+  status.textContent = 'Validating and saving CSV…';
+  try {
+    const result = await api('/api/records/import', {method:'POST', headers:{'Content-Type':'text/csv; charset=utf-8'}, body:await file.text()});
+    records = result.records;
+    dataVersion += 1;
+    latest = null;
+    $('answer-panel').innerHTML = '<p class="muted">The dataset was updated. Submit your question again to use the saved values.</p>';
+    document.querySelectorAll('.record-count').forEach(el => {el.textContent = records.length;});
+    document.querySelectorAll('.location-count').forEach(el => {el.textContent = new Set(records.map(r => r.location)).size;});
+    status.textContent = `CSV saved: ${result.updated} updated, ${result.added} added. Answers, map and downloads now use these records.`;
+    $('csv-file').value = '';
+    renderExplorer();
+  } catch (error) {
+    status.classList.add('error');
+    status.textContent = error.message;
+  } finally {
+    importingCsv = false;
+    $('csv-import-form').removeAttribute('aria-busy');
+    setEditorControls();
+  }
+});
 $('data-search').addEventListener('input',renderExplorer);
 $('data-theme').addEventListener('change',renderExplorer);
 
@@ -347,6 +393,8 @@ async function init() {
     records = await api('/api/records');
     document.querySelectorAll('.record-count').forEach(el => {el.textContent=records.length;});
     document.querySelectorAll('.location-count').forEach(el => {el.textContent=new Set(records.map(r => r.location)).size;});
+    datasetReady = true;
+    setEditorControls();
     $('connection').textContent='Dataset ready';
     renderExplorer();
     try {

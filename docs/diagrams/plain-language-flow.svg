@@ -1,7 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 1280" role="img" aria-labelledby="title desc">
-<title id="title">SpaceLab explained in plain language</title><desc id="desc">Ask a question with web search off or on. SpaceLab checks a notebook containing synthetic Malaysian observations plus saved edits. It computes rankings and complete lists itself. If enabled, a web researcher brings back external excerpts. The optional AI writer explains the evidence. Dataset facts and web references stay separate; errors show clear fallback. Users can edit a record, save or cancel, and see saved changes in later answers, maps and downloads.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 1530" role="img" aria-labelledby="title desc">
+<title id="title">SpaceLab explained in plain language</title><desc id="desc">Ask a question with web search off or on. SpaceLab checks a notebook containing synthetic Malaysian observations plus saved edits and CSV-imported additions. It computes rankings and complete lists itself. If enabled, a web researcher brings back external excerpts. The optional AI writer explains the evidence. Dataset facts and web references stay separate; errors show clear fallback. Users can browse application groups, edit records or import CSV by ID, and see saved changes in later answers, maps and downloads.</desc>
 <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10Z" fill="#9ad8ff"/></marker>
-<style>text{font-family:system-ui,-apple-system,sans-serif;fill:#f1f5f9}.heading{font-size:21px;font-weight:650}.body{font-size:16px;fill:#cbd5e1}.label{font-size:12px;letter-spacing:1px;font-weight:650;fill:#a5b4fc}.code{font-family:monospace;font-size:14px;fill:#cbd5e1}.box{fill:#171f39;stroke:#4b5b7b;stroke-width:1.5}.optional-box{fill:#242c50;stroke:#818cf8;stroke-width:1.5}.note{fill:#30283c;stroke:#867044;stroke-width:1.5}.line{fill:none;stroke:#9ad8ff;stroke-width:2;marker-end:url(#arrow)}.optional{stroke-dasharray:7 5}</style></defs><rect width="1100" height="1280" fill="#10182a"/>
+<style>text{font-family:system-ui,-apple-system,sans-serif;fill:#f1f5f9}.heading{font-size:21px;font-weight:650}.body{font-size:16px;fill:#cbd5e1}.label{font-size:12px;letter-spacing:1px;font-weight:650;fill:#a5b4fc}.code{font-family:monospace;font-size:14px;fill:#cbd5e1}.box{fill:#171f39;stroke:#4b5b7b;stroke-width:1.5}.optional-box{fill:#242c50;stroke:#818cf8;stroke-width:1.5}.note{fill:#30283c;stroke:#867044;stroke-width:1.5}.line{fill:none;stroke:#9ad8ff;stroke-width:2;marker-end:url(#arrow)}.optional{stroke-dasharray:7 5}</style></defs><rect width="1100" height="1530" fill="#10182a"/>
 <rect class="box" x="70" y="30" width="960" height="125" rx="14"/>
 <text class="label" x="92" y="59">01 · YOU ASK</text>
 <text class="heading" x="92" y="91">Enter a question and choose whether to use the web</text>
@@ -12,8 +12,8 @@
 <rect class="box" x="70" y="205" width="450" height="150" rx="14"/>
 <text class="label" x="92" y="234">02A · THE NOTEBOOK</text>
 <text class="heading" x="92" y="266">Your Malaysian sample observations</text>
-<text class="body" x="92" y="295">103 invented observations across 28 places.</text>
-<text class="body" x="92" y="320">Saved record edits are included automatically.</text>
+<text class="body" x="92" y="295">Seed: 103 invented observations / 28 places.</text>
+<text class="body" x="92" y="320">Saved edits and CSV additions are included.</text>
 <text class="body" x="92" y="345">The measurements are teaching examples.</text>
 <rect class="optional-box" x="580" y="205" width="450" height="150" rx="14"/>
 <text class="label" x="602" y="234">02B · THE WEB RESEARCHER · OPTIONAL</text>
@@ -58,4 +58,12 @@
 <text class="body" x="92" y="1190">The Malaysia outline map works offline. Saved edits persist locally across app restarts.</text>
 <text class="body" x="92" y="1215">Hosted Heroku editing needs durable storage to keep changes across dyno replacements.</text>
 <path class="line" d="M70 1135H30V280H70"/>
+<rect class="box" x="70" y="1270" width="960" height="220" rx="14"/>
+<text class="label" x="92" y="1299">07 · UPLOAD A SPREADSHEET IN DATA EXPLORER</text>
+<text class="heading" x="92" y="1331">Open an application group, or upload several observations at once</text>
+<text class="body" x="92" y="1356">Download the CSV template → edit selected rows → choose the file → Upload and save.</text>
+<text class="body" x="92" y="1381">Matching IDs replace supplied values. New IDs add observations. Other records stay unchanged.</text>
+<text class="body" x="92" y="1406">Use synthetic teaching data. If any row is invalid, the whole file is rejected with an error.</text>
+<text class="body" x="92" y="1431">A successful upload shows updated / added counts and refreshes your map and record groups.</text>
+<text class="body" x="92" y="1456">Saved uploads use the same local storage as edits; Heroku still needs durable storage.</text>
 </svg>

@@ -2,7 +2,8 @@
 
 The repository includes a Gunicorn WSGI entry point, a `Procfile`, pinned server
 dependency and `.python-version`. The browser, API and small bundled dataset
-run together in one Heroku app. No database or separate frontend host is required.
+run together in one Heroku app. SQLite stores record edits and CSV additions locally; no separate frontend host
+is required. Durable hosted writes need persistent storage as described below.
 
 ## 1. Remove the local Cloudflare connector
 
@@ -48,15 +49,25 @@ Verify after deployment:
 - `/api/health` reports `ok` and 103 records for the bundled dataset.
 - The assistant answers `What do the flood observations in Klang show?` with
   source `FLOOD-001` and the synthetic 142 ha value.
-- Data explorer and CSV/JSON/GeoJSON downloads work.
+- Data Explorer shows application groups with counts; search and filters update
+  both records and map markers. CSV/JSON/GeoJSON downloads reflect current data.
+- With a disposable teaching CSV, verify the upload summary shows updated/added
+  counts, new IDs appear in the correct group, and downloads include them.
+  An invalid row should reject the whole upload without saving other rows.
 - Response JSON downloads still include the retrieved sources.
 
 Inspect errors using `heroku logs --tail`. Bundled sample files change through
-deployment; Data Explorer edits are stored separately in a local SQLite file
+deployment; Data Explorer edits and CSV additions are stored separately in a local SQLite file
 under `SPACELAB_DATA_DIR` (default `data/database`). They are immediately shared by workers
 on the same filesystem. Heroku dyno filesystems are temporary and separate:
-these edits do not survive dyno replacement and are not shared across dynos.
-Use persistent storage before relying on durable edits in a hosted deployment.
+these edits and imported additions do not survive dyno replacement and are not shared across dynos.
+Use persistent storage before relying on durable edits or CSV imports in a hosted deployment.
+
+CSV uploads use `POST /api/records/import` with `text/csv`, limited to 2 MB and
+2,000 rows. The backend validates all rows, then commits updates and additions
+by ID in one SQLite transaction. Importing a CSV does not change the deployed
+sample files. Backing up CSV/JSON exports captures the merged dataset; the
+SQLite file retains the saved overrides and additions.
 
 ## 3. Connect hosted Qwen separately
 
@@ -98,7 +109,7 @@ python3.14 -m venv .venv
 .venv/bin/gunicorn backend.webapp:application --bind 127.0.0.1:8081 --workers 2 --threads 4
 ```
 
-Visit http://127.0.0.1:8081 and test both views. Stop with Ctrl+C.
+Visit http://127.0.0.1:8081 and test the assistant, grouped Data Explorer with CSV import, and Architecture views. Stop with Ctrl+C.
 
 References: [Heroku Python versions](https://devcenter.heroku.com/articles/python-runtimes),
 [Heroku request timeouts](https://devcenter.heroku.com/articles/request-timeout),

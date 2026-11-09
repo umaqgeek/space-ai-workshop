@@ -125,3 +125,89 @@ class RecordEditTests(unittest.TestCase):
         self.assertEqual(status, 500)
         self.assertIn('have not been saved', json.loads(payload)['error'])
         self.assertEqual(record_store.get_records()[0], self.original)
+
+
+class CsvImportTests(unittest.TestCase):
+    setUp = RecordEditTests.setUp
+    request = RecordEditTests.request
+    save = RecordEditTests.save
+    def upload(self, rows=None, text=None, content_type='text/csv'):
+        if text is None:
+            output = io.StringIO(newline='')
+            writer = csv.DictWriter(output, fieldnames=rows[0].keys())
+            writer.writeheader()
+            writer.writerows(rows)
+            text = output.getvalue()
+        body = text.encode('utf-8')
+        status, _, payload = dispatch('POST', '/api/records/import',
+                                     {'Content-Length': str(len(body)), 'Content-Type': content_type},
+                                     io.BytesIO(body))
+        return status, json.loads(payload)
+
+    def test_csv_upserts_persist_and_are_used_by_answers_exports_and_edits(self):
+        updated = dict(self.original, value=888)
+        added = dict(self.original, id='FLOOD-999', value=999)
+        status, result = self.upload([updated, added])
+        self.assertEqual(status, 200, result)
+        self.assertEqual((result['updated'], result['added']), (1, 1))
+        records = record_store.get_records()
+        self.assertEqual(len(records), 104)
+        new = next(r for r in records if r['id'] == 'FLOOD-999')
+        self.assertTrue(new['synthetic'])
+        self.assertIn('999.0 ha', new['description'])
+        self.assertEqual(records[0]['value'], 888)
+        status, body = self.request('POST', '/api/ask', {'question': 'top 1 flood observations'})
+        self.assertEqual(json.loads(body)['sources'][0]['id'], 'FLOOD-999')
+        for extension in ('csv', 'json', 'geojson'):
+            status, body = self.request('GET', '/sample-data/observations.' + extension)
+            self.assertEqual(status, 200)
+            self.assertIn(b'FLOOD-999', body)
+        self.assertEqual(self.save({'value': 1000}, new, new['id'])[0], 200)
+        self.assertEqual(self.save({'value': 50})[0], 409)
+        self.assertEqual(len(rag.load_records()), 103)
+
+    def test_partial_updates_and_utf8_bom_export_round_trip(self):
+        status, result = self.upload(text='\ufeffid,value\r\nFLOOD-001,321\r\n')
+        self.assertEqual(status, 200, result)
+        self.assertEqual(record_store.get_records()[0]['value'], 321)
+        text = record_store.export_records(record_store.get_records(), 'csv').decode()
+        status, result = self.upload(text=text)
+        self.assertEqual(status, 200, result)
+        self.assertEqual(result['updated'], 103)
+
+    def test_invalid_uploads_are_atomic_and_report_rows(self):
+        invalid_rows = [dict(self.original, id='FLOOD-999', value='NaN'),
+                        dict(self.original, id='FLOOD-999', synthetic=False),
+                        dict(self.original, id='FLOOD-999', theme='unknown'),
+                        dict(self.original, id='BAD'),
+                        dict(self.original, id='FLOOD-999', metric='wrong'),
+                        dict(self.original, id='FLOOD-999', baseline_date='2025-01-01'),
+                        dict(self.original, id='FLOOD-999', observation_date='2026-02-30')]
+        for invalid in invalid_rows:
+            with self.subTest(invalid=invalid):
+                status, result = self.upload([dict(self.original, value=777), invalid])
+                self.assertEqual(status, 400, result)
+                self.assertIn('row 3', result['error'])
+                self.assertEqual(record_store.get_records()[0], self.original)
+                self.assertEqual(len(record_store.get_records()), 103)
+
+    def test_csv_shape_limits_and_duplicate_ids(self):
+        for text in ('id,value\n', 'value\n123\n', 'id,id\nFLOOD-001,FLOOD-001\n',
+                     'id,value\nFLOOD-001,2,extra\n', 'id,value\nFLOOD-001\n',
+                     'id,value\nFLOOD-001,2\nFLOOD-001,3\n',
+                     'id,unknown\nFLOOD-001,2\n', 'id,value\nFLOOD-999,3\n',
+                     'id,value\n' + 'FLOOD-001,2\n' * 2001):
+            with self.subTest(text=text[:60]):
+                self.assertEqual(self.upload(text=text)[0], 400)
+                self.assertEqual(record_store.get_records()[0], self.original)
+        self.assertEqual(self.upload(text='id\nFLOOD-001', content_type='text/plain')[0], 415)
+        self.assertEqual(self.upload(text='x' * (2 * 1024 * 1024 + 1))[0], 413)
+
+    def test_concurrent_imports_and_edits_preserve_other_records(self):
+        second = record_store.get_records()[1]
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            futures = [pool.submit(record_store.import_csv, 'id,value\nFLOOD-001,777\n'),
+                       pool.submit(record_store.update_record, second['id'], {'value': 555}, second)]
+            for future in futures:
+                future.result()
+        self.assertEqual([r['value'] for r in record_store.get_records()[:2]], [777, 555])

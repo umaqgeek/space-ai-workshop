@@ -1,7 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1630" role="img" aria-labelledby="title desc">
-<title id="title">SpaceLab question-to-answer process flow</title><desc id="desc">Validate the question and boolean web-search setting. Read merged data. Filter all records and use BM25, numeric ranking or a complete listing. Off keeps dataset-only processing; on searches Ollama for separate web references. Missing dataset evidence can be supplemented by valid external web excerpts. Preserve computed dataset results, validate model citations, show explicit search errors or model fallback, and display references separately. Edited values are read for new requests and all downloads.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1900" role="img" aria-labelledby="title desc">
+<title id="title">SpaceLab question-to-answer process flow</title><desc id="desc">Validate the question and boolean web-search setting. Read merged data. Filter all records and use BM25, numeric ranking or a complete listing. Off keeps dataset-only processing; on searches Ollama for separate web references. Missing dataset evidence can be supplemented by valid external web excerpts. Preserve computed dataset results, validate model citations, show explicit search errors or model fallback, and display references separately. Edits and atomic CSV upserts are read for new requests and all downloads.</desc>
 <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10Z" fill="#9ad8ff"/></marker>
-<style>text{font-family:system-ui,-apple-system,sans-serif;fill:#f1f5f9}.heading{font-size:21px;font-weight:650}.body{font-size:16px;fill:#cbd5e1}.label{font-size:12px;letter-spacing:1px;font-weight:650;fill:#a5b4fc}.code{font-family:monospace;font-size:14px;fill:#cbd5e1}.box{fill:#171f39;stroke:#4b5b7b;stroke-width:1.5}.optional-box{fill:#242c50;stroke:#818cf8;stroke-width:1.5}.note{fill:#30283c;stroke:#867044;stroke-width:1.5}.line{fill:none;stroke:#9ad8ff;stroke-width:2;marker-end:url(#arrow)}.optional{stroke-dasharray:7 5}</style></defs><rect width="1200" height="1630" fill="#10182a"/>
+<style>text{font-family:system-ui,-apple-system,sans-serif;fill:#f1f5f9}.heading{font-size:21px;font-weight:650}.body{font-size:16px;fill:#cbd5e1}.label{font-size:12px;letter-spacing:1px;font-weight:650;fill:#a5b4fc}.code{font-family:monospace;font-size:14px;fill:#cbd5e1}.box{fill:#171f39;stroke:#4b5b7b;stroke-width:1.5}.optional-box{fill:#242c50;stroke:#818cf8;stroke-width:1.5}.note{fill:#30283c;stroke:#867044;stroke-width:1.5}.line{fill:none;stroke:#9ad8ff;stroke-width:2;marker-end:url(#arrow)}.optional{stroke-dasharray:7 5}</style></defs><rect width="1200" height="1900" fill="#10182a"/>
 <rect class="box" x="300" y="30" width="600" height="120" rx="14"/>
 <text class="label" x="322" y="59">01 · BROWSER</text>
 <text class="heading" x="322" y="91">Submit question and current settings</text>
@@ -16,7 +16,7 @@
 <path class="line optional" d="M780 295V325H890V360"/>
 <rect class="box" x="60" y="360" width="500" height="170" rx="14"/>
 <text class="label" x="82" y="389">03A · DATASET PATH · ALWAYS</text>
-<text class="heading" x="82" y="421">Read bundled records + saved edits</text>
+<text class="heading" x="82" y="421">Read bundled records + saved edits / imports</text>
 <text class="body" x="82" y="450">Apply exact place / state / topic filters to the full corpus.</text>
 <text class="body" x="82" y="475">Rank / list query → numeric sort or all matching rows.</text>
 <text class="body" x="82" y="500">Other query → BM25 over every matching record.</text>
@@ -46,13 +46,13 @@
 <text class="body" x="662" y="745">Offline API requests can show web excerpts without AI.</text>
 <path class="line optional" d="M450 750V785H450V825"/>
 <path class="line optional" d="M890 750V785H750V825"/>
-<rect class="optional-box" x="300" y="825" width="600" height="130" rx="14"/>
+<rect class="optional-box" x="300" y="825" width="600" height="150" rx="14"/>
 <text class="label" x="322" y="854">05 · OPTIONAL MODEL CALL</text>
 <text class="heading" x="322" y="886">Question + evidence → configured Ollama model</text>
 <text class="body" x="322" y="915">Untrusted input remains data; model credentials stay on server.</text>
 <text class="body" x="322" y="940">Use dataset-only or dataset + web system instructions.</text>
 <text class="body" x="322" y="965">Search / model calls use timeouts; report fallback honestly.</text>
-<path class="line" d="M600 955V1000"/>
+<path class="line" d="M600 975V1000"/>
 <rect class="box" x="300" y="1000" width="600" height="145" rx="14"/>
 <text class="label" x="322" y="1029">06 · COMPOSE &amp; CHECK</text>
 <text class="heading" x="322" y="1061">Preserve computed results; validate model citations</text>
@@ -62,13 +62,13 @@
 <path class="line" d="M60 665H30V1205H300"/>
 <text class="body" x="52" y="1182">Direct computed / excerpt / insufficient result</text>
 <path class="line" d="M600 1145V1190"/>
-<rect class="box" x="300" y="1190" width="600" height="130" rx="14"/>
+<rect class="box" x="300" y="1190" width="600" height="145" rx="14"/>
 <text class="label" x="322" y="1219">07 · RETURN RESPONSE</text>
 <text class="heading" x="322" y="1251">Dataset sources + separate web sources and status</text>
 <text class="body" x="322" y="1280">answer · actual mode · status · notice · web_search</text>
 <text class="body" x="322" y="1305">Web search failures remain visible even with a dataset answer.</text>
 <text class="body" x="322" y="1330">Dataset-only requests never call the search provider.</text>
-<path class="line" d="M600 1320V1365"/>
+<path class="line" d="M600 1335V1365"/>
 <rect class="box" x="60" y="1365" width="1080" height="120" rx="14"/>
 <text class="label" x="82" y="1394">08 · DISPLAY &amp; VERIFY</text>
 <text class="heading" x="82" y="1426">Answer → Clarification → References → optional JSON download</text>
@@ -76,5 +76,13 @@
 <text class="body" x="82" y="1480">Citation checks establish source identity; users still verify dates, claims, relevance and limitations.</text>
 <rect class="box" x="60" y="1525" width="1080" height="80" rx="14"/>
 <text class="label" x="82" y="1554">DATA FRESHNESS</text>
-<text class="heading" x="82" y="1586">Saved edits are read by the next question, ranking, map refresh and dataset download.</text>
+<text class="heading" x="82" y="1586">Saved edits and imports feed later questions, rankings, map refreshes and downloads.</text>
+<rect class="box" x="60" y="1650" width="1080" height="220" rx="14"/>
+<text class="label" x="82" y="1679">SEPARATE WRITE PATH · CSV IMPORT</text>
+<text class="heading" x="82" y="1711">Choose CSV → Upload and save → POST /api/records/import</text>
+<text class="body" x="82" y="1736">Check text/csv, UTF-8 and size → parse headers and rows → reject duplicate IDs.</text>
+<text class="body" x="82" y="1761">Within one SQLite transaction: merge current data → validate all rows → upsert by ID.</text>
+<text class="body" x="82" y="1786">Existing ID → update supplied editable fields. New ID → add a valid synthetic observation.</text>
+<text class="body" x="82" y="1811">Invalid row → rollback, return an error. Success → commit and return counts + current records.</text>
+<text class="body" x="82" y="1836">Refresh application groups, counts and map; clear the previous answer; exports read saved data.</text>
 </svg>

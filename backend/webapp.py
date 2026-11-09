@@ -1,4 +1,5 @@
 """Shared request handling for local development and Heroku/Gunicorn."""
+import csv
 import io
 import json
 import mimetypes
@@ -9,10 +10,11 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 from rag_server.rag import ask, SYSTEM_PROMPT
-from data.record_store import get_records, update_record, export_records, EditConflict, RecordNotFound
+from data.record_store import get_records, update_record, export_records, import_csv, EditConflict, RecordNotFound
 
 ROOT = Path(__file__).resolve().parents[1]
 MAX_BODY = 16_384
+MAX_CSV_BODY = 2 * 1024 * 1024
 
 
 class Request:
@@ -61,12 +63,19 @@ class Request:
     def do_POST(self):
         path = urlsplit(self.path).path
         edit = re.fullmatch(r'/api/records/([A-Z]+-\d{3})', path)
-        if path != '/api/ask' and not edit:
+        importing = path == '/api/records/import'
+        if path != '/api/ask' and not edit and not importing:
             return self.respond({'error': 'Not found'}, 404)
         try:
             size = int(self.headers.get('Content-Length', '0'))
-            if size <= 0 or size > MAX_BODY:
-                return self.respond({'error': 'Request must contain 1–16384 bytes.'}, 413)
+            limit = MAX_CSV_BODY if importing else MAX_BODY
+            if size <= 0 or size > limit:
+                return self.respond({'error': f'Request must contain 1–{limit} bytes.'}, 413)
+            if importing:
+                if self.headers.get('Content-Type', '').split(';')[0].strip().lower() != 'text/csv':
+                    return self.respond({'error': 'CSV uploads require text/csv.'}, 415)
+                result = import_csv(self.rfile.read(size).decode('utf-8-sig'))
+                return self.respond(dict(result, records=get_records()))
             data = json.loads(self.rfile.read(size))
             if not isinstance(data, dict):
                 raise ValueError('Expected a JSON object.')
@@ -93,7 +102,7 @@ class Request:
             return self.respond({'error': str(exc)}, 404)
         except (OSError, sqlite3.Error):
             return self.respond({'error': 'Could not save this record. Try again; your edits have not been saved.'}, 500)
-        except (ValueError, TypeError, UnicodeDecodeError) as exc:
+        except (ValueError, TypeError, UnicodeDecodeError, csv.Error) as exc:
             return self.respond({'error': str(exc)}, 400)
 
 

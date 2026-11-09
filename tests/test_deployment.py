@@ -11,6 +11,23 @@ from backend.webapp import application
 
 
 class WsgiTests(unittest.TestCase):
+    def test_branding_and_crawler_assets_are_served(self):
+        for path, mime, signature in (
+            ('/assets/adl-icon.jpg', 'image/jpeg', b'\xff\xd8\xff'),
+            ('/favicon.jpg', 'image/jpeg', b'\xff\xd8\xff'),
+            ('/assets/adl-logo.png', 'image/png', b'\x89PNG\r\n\x1a\n'),
+            ('/robots.txt', 'text/plain', b'User-agent:'),
+            ('/sitemap.xml', 'application/xml', b'<?xml'),
+            ('/site.webmanifest', 'application/manifest+json', b'{'),
+        ):
+            with self.subTest(path=path):
+                response = self.request('GET', path)
+                self.assertEqual(response['status'], 200)
+                self.assertEqual(response['headers']['Content-Type'].split(';')[0], mime)
+                self.assertTrue(response['body'].startswith(signature))
+                if mime.startswith('image/'):
+                    self.assertNotIn('charset', response['headers']['Content-Type'])
+
     def request(self, method, path, body=b'', length=None):
         environ = {}
         setup_testing_defaults(environ)

@@ -47,6 +47,12 @@ class Request:
             return self.respond(export_records(get_records(), extension), content_type=mime + '; charset=utf-8')
         # Explicit allowlist keeps project source and local files off the web server.
         files = {'/': ROOT / 'frontend/index.html', '/app.js': ROOT / 'frontend/app.js', '/styles.css': ROOT / 'frontend/styles.css',
+                 '/assets/adl-icon.jpg': ROOT / 'frontend/assets/adl-icon.jpg',
+                 '/assets/adl-logo.png': ROOT / 'frontend/assets/adl-logo.png',
+                 '/favicon.jpg': ROOT / 'frontend/assets/adl-icon.jpg',
+                 '/site.webmanifest': ROOT / 'frontend/site.webmanifest',
+                 '/robots.txt': ROOT / 'frontend/robots.txt',
+                 '/sitemap.xml': ROOT / 'frontend/sitemap.xml',
                  '/maps/malaysia.geojson': ROOT / 'frontend/maps/malaysia.geojson',
                  '/diagrams/architecture.svg': ROOT / 'docs/diagrams/architecture.svg',
                  '/diagrams/process-flow.svg': ROOT / 'docs/diagrams/process-flow.svg',
@@ -58,7 +64,8 @@ class Request:
         if not target:
             return self.respond({'error': 'Not found'}, 404)
         mime = mimetypes.guess_type(str(target))[0] or 'text/plain'
-        return self.respond(target.read_bytes(), content_type=mime + '; charset=utf-8')
+        text_asset = mime.startswith('text/') or mime in ('application/json', 'application/manifest+json', 'application/xml', 'application/javascript', 'image/svg+xml')
+        return self.respond(target.read_bytes(), content_type=mime + ('; charset=utf-8' if text_asset else ''))
 
     def do_POST(self):
         path = urlsplit(self.path).path

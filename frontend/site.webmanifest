@@ -1,0 +1,20 @@
+{
+  "name": "SpaceLab \u00b7 ADL Space Academy",
+  "short_name": "SpaceLab",
+  "description": "AI for space learning with synthetic Malaysian observations.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "lang": "en",
+  "theme_color": "#10182a",
+  "background_color": "#10182a",
+  "icons": [
+    {
+      "src": "/assets/adl-icon.jpg",
+      "sizes": "480x480",
+      "type": "image/jpeg",
+      "purpose": "any"
+    }
+  ]
+}

@@ -196,3 +196,10 @@ textarea::placeholder, input::placeholder { color: #a0aec6; }
 #csv-file::file-selector-button { background: var(--accent-soft); color: var(--ink); border: 1px solid var(--border-strong); border-radius: 6px; padding: 6px 10px; margin-right: 12px; cursor: pointer; }
 #csv-import-status:empty { display: none; }
 @media(max-width:680px) { #csv-import-form { align-items: stretch; flex-direction: column; } }
+
+
+/* Academy identity, using the original main-site icon. */
+.brand-icon { display: block; flex-shrink: 0; width: 40px; height: 40px; border-radius: 50%; }
+.brand-academy { margin: 10px 0 0; color: var(--muted); font-size: 9px; letter-spacing: 1px; text-decoration: none; }
+.brand-academy:hover { color: var(--accent-light); text-decoration: underline; }
+@media(max-width:680px) { .brand-icon { width: 32px; height: 32px; } .brand-academy { font-size: 8px; } }

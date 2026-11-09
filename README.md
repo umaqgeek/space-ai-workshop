@@ -246,6 +246,25 @@ and export metadata; replacing files alone does not support real-data ingestion.
 Current citation validation expects IDs such as `FLOOD-001` (uppercase letters,
 hyphen, three digits). Extend that validation if your IDs use a different format.
 
+## Branding and search metadata
+
+SpaceLab uses the original ADL Space Academy favicon and logo, stored locally in
+`frontend/assets/`. See the [asset sources](frontend/assets/README.md).
+The sidebar links to the academy while retaining the SpaceLab application name.
+
+The public URL is **https://spacelab.adlspace.academy/**. The HTML head includes
+an app-specific title and description, canonical URL, Open Graph and Twitter
+sharing tags, and WebApplication JSON-LD naming ADL Space Academy as publisher.
+`frontend/site.webmanifest` provides the app name, icon and navy theme.
+`frontend/robots.txt` points to `frontend/sitemap.xml`; the sitemap lists the
+homepage because application views use URL fragments. API and dataset download
+paths are excluded from crawling. Robots rules are crawler guidance, not access
+controls.
+
+When changing the public domain, update the canonical URL, social image URLs and
+JSON-LD in `frontend/index.html`, plus the domain in `robots.txt` and `sitemap.xml`.
+The backend explicitly serves these assets through its static-file allowlist.
+
 ## Checks
 
 ```sh

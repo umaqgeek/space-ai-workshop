@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /sample-data/
+
+Sitemap: https://spacelab.adlspace.academy/sitemap.xml

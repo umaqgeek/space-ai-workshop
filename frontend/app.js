@@ -241,7 +241,7 @@ function outlinePaths() {
       const [x, y] = projectLocation(lon, lat);
       return `${index ? 'L' : 'M'}${x.toFixed(2)},${y.toFixed(2)}`;
     }).join(' ') + ' Z').join(' ');
-    return `<path d="${path}" fill="#dce6cb" stroke="#a0b58a" stroke-width="0.8" fill-rule="evenodd" stroke-linejoin="round"/>`;
+    return `<path d="${path}" fill="#25385b" stroke="#647aaa" stroke-width="0.8" fill-rule="evenodd" stroke-linejoin="round"/>`;
   }).join('');
 }
 
@@ -256,9 +256,9 @@ function renderExplorer() {
     const [x, y] = projectLocation(r.longitude, r.latitude);
     const labelX = x > 390 ? x-9 : x+9;
     const label = escapeHtml(`${r.location}, ${r.state}`);
-    return `<g class="map-point" tabindex="0" role="img" aria-label="${label}: ${r.latitude}, ${r.longitude}"><title>${label}: ${r.latitude}, ${r.longitude}</title><circle cx="${x}" cy="${y}" r="5" fill="#507648" stroke="white" stroke-width="2"/><text class="map-label" x="${labelX}" y="${y-10}" text-anchor="${x>390?'end':'start'}" fill="#3c5738" font-size="12" stroke="white" stroke-width="3" paint-order="stroke">${label}</text></g>`;
+    return `<g class="map-point" tabindex="0" role="img" aria-label="${label}: ${r.latitude}, ${r.longitude}"><title>${label}: ${r.latitude}, ${r.longitude}</title><circle cx="${x}" cy="${y}" r="5" fill="#818cf8" stroke="white" stroke-width="2"/><text class="map-label" x="${labelX}" y="${y-10}" text-anchor="${x>390?'end':'start'}" fill="#e2e8f0" font-size="12" stroke="white" stroke-width="3" paint-order="stroke">${label}</text></g>`;
   }).join('');
-  $('location-map').innerHTML = `<defs><pattern id="grid" width="50" height="50" patternUnits="userSpaceOnUse"><path d="M 50 0 L 0 0 0 50" fill="none" stroke="#dce5d3" stroke-width="1"/></pattern></defs><rect width="500" height="480" fill="url(#grid)"/><text x="25" y="25" font-size="11" fill="#7a8f6b">N ↑</text><text x="25" y="50" font-size="12" fill="#3c5738">Peninsular Malaysia</text><text x="275" y="50" font-size="12" fill="#3c5738">East Malaysia</text><path d="M250 65V430" stroke="#dce5d3" stroke-dasharray="4 4"/><text x="25" y="458" font-size="10" fill="#7a8f6b">99–105° E · 0.5–7.5° N</text><text x="275" y="458" font-size="10" fill="#7a8f6b">109–120° E · 0.5–7.5° N</text><g aria-hidden="true" pointer-events="none">${outlinePaths()}</g>${points}`;
+  $('location-map').innerHTML = `<defs><pattern id="grid" width="50" height="50" patternUnits="userSpaceOnUse"><path d="M 50 0 L 0 0 0 50" fill="none" stroke="#ffffff1a" stroke-width="1"/></pattern></defs><rect width="500" height="480" fill="url(#grid)"/><text x="25" y="25" font-size="11" fill="#b3bfd4">N ↑</text><text x="25" y="50" font-size="12" fill="#e2e8f0">Peninsular Malaysia</text><text x="275" y="50" font-size="12" fill="#e2e8f0">East Malaysia</text><path d="M250 65V430" stroke="#ffffff1a" stroke-dasharray="4 4"/><text x="25" y="458" font-size="10" fill="#b3bfd4">99–105° E · 0.5–7.5° N</text><text x="275" y="458" font-size="10" fill="#b3bfd4">109–120° E · 0.5–7.5° N</text><g aria-hidden="true" pointer-events="none">${outlinePaths()}</g>${points}`;
 }
 function setEditorControls() {
   $('data-search').disabled = Boolean(editingRecord);

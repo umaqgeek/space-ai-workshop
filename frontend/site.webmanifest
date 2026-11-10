@@ -11,9 +11,9 @@
   "background_color": "#10182a",
   "icons": [
     {
-      "src": "/assets/adl-icon.jpg",
-      "sizes": "480x480",
-      "type": "image/jpeg",
+      "src": "/assets/adl-blue.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
       "purpose": "any"
     }
   ]

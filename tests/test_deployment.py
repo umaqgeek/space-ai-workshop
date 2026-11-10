@@ -13,9 +13,9 @@ from backend.webapp import application
 class WsgiTests(unittest.TestCase):
     def test_branding_and_crawler_assets_are_served(self):
         for path, mime, signature in (
-            ('/assets/adl-icon.jpg', 'image/jpeg', b'\xff\xd8\xff'),
+            ('/assets/adl-black.jpeg', 'image/jpeg', b'\xff\xd8\xff'),
             ('/favicon.jpg', 'image/jpeg', b'\xff\xd8\xff'),
-            ('/assets/adl-logo.png', 'image/png', b'\x89PNG\r\n\x1a\n'),
+            ('/assets/adl-blue.png', 'image/png', b'\x89PNG\r\n\x1a\n'),
             ('/robots.txt', 'text/plain', b'User-agent:'),
             ('/sitemap.xml', 'application/xml', b'<?xml'),
             ('/site.webmanifest', 'application/manifest+json', b'{'),

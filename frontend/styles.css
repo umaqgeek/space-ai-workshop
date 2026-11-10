@@ -198,8 +198,8 @@ textarea::placeholder, input::placeholder { color: #a0aec6; }
 @media(max-width:680px) { #csv-import-form { align-items: stretch; flex-direction: column; } }
 
 
-/* Academy identity, using the original main-site icon. */
-.brand-icon { display: block; flex-shrink: 0; width: 40px; height: 40px; border-radius: 50%; }
+/* White academy lettering for the dark sidebar; preserve the full logo. */
+.brand-icon { display: block; flex-shrink: 0; width: 56px; height: auto; object-fit: contain; }
 .brand-academy { margin: 10px 0 0; color: var(--muted); font-size: 9px; letter-spacing: 1px; text-decoration: none; }
 .brand-academy:hover { color: var(--accent-light); text-decoration: underline; }
-@media(max-width:680px) { .brand-icon { width: 32px; height: 32px; } .brand-academy { font-size: 8px; } }
+@media(max-width:680px) { .brand-icon { width: 48px; height: auto; } .brand-academy { font-size: 8px; } }

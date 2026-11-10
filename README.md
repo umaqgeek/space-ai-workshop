@@ -248,7 +248,7 @@ hyphen, three digits). Extend that validation if your IDs use a different format
 
 ## Branding and search metadata
 
-SpaceLab uses the original ADL Space Academy favicon and logo, stored locally in
+SpaceLab uses the supplied ADL Space Academy black and blue logos, stored locally in
 `frontend/assets/`. See the [asset sources](frontend/assets/README.md).
 The sidebar links to the academy while retaining the SpaceLab application name.
 

@@ -109,6 +109,29 @@ class ChatHistoryTests(unittest.TestCase):
         self.assertEqual(len(saved), 12)
         self.assertEqual(len({item['question'] for item in saved}), 12)
 
+    def test_follow_up_uses_only_its_session_and_new_chat_resets_memory(self):
+        first = self.ask()
+        other = self.ask(question='vegetation in Kuching')
+        follow_up = self.ask(question='What are its limitations?', session_id=first['session_id'])
+        self.assertEqual(follow_up['context_turns'], 1)
+        self.assertEqual([source['id'] for source in follow_up['sources']], ['FLOOD-001'])
+        self.assertNotEqual(other['session_id'], first['session_id'])
+        fresh = self.ask(question='What are its limitations?')
+        self.assertEqual(fresh['context_turns'], 0)
+        # An old shared session can be resumed with the same ID.
+        resumed = self.ask(question='What about Kuching?', session_id=first['session_id'])
+        self.assertEqual(resumed['context_turns'], 2)
+        self.assertTrue(all(source['location'] == 'Kuching' and source['theme'] == 'flood'
+                            for source in resumed['sources']))
+
+    def test_recent_memory_is_bounded_and_ordered(self):
+        chat_id = chat_store.session_id()
+        for number in range(10):
+            chat_store.save_exchange(chat_id, {'question': f'Question {number}', 'answer': 'Answer'}, {})
+        recent = chat_store.recent_conversations(chat_id)
+        self.assertEqual([turn['question'] for turn in recent], [f'Question {number}' for number in range(4, 10)])
+        self.assertEqual(chat_store.recent_conversations(chat_store.session_id()), [])
+
 
 if __name__ == '__main__':
     unittest.main()

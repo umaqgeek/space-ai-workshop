@@ -66,3 +66,12 @@ def get_session(chat_id):
                                (chat_id,)).fetchall()
     return dict(row, conversations=[dict(json.loads(item['body']), created_at=item['created_at'])
                                     for item in exchanges])
+
+
+def recent_conversations(chat_id):
+    """Read only this session's latest turns, in conversational order."""
+    from rag_server.conversation import MAX_TURNS
+    with connection() as db:
+        rows = db.execute('SELECT body FROM chat_exchanges WHERE session_id = ? ORDER BY id DESC LIMIT ?',
+                          (chat_id, MAX_TURNS)).fetchall()
+    return [json.loads(row['body']) for row in reversed(rows)]

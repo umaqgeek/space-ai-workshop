@@ -7,6 +7,8 @@ import re
 import urllib.request
 from pathlib import Path
 
+from rag_server.conversation import MAX_TURNS, prompt_context, retrieval_question
+
 DATA_PATH = Path(__file__).resolve().parents[1] / 'data' / 'sample-data' / 'observations.json'
 STOP = set('a an the is are was were of in on at to for and or with from what which how can could does do tell me about show please explain compare between there this that using data records observation observations satellite malaysia'.split())
 ALIASES = {'flooding': 'flood', 'floods': 'flood', 'banjir': 'flood', 'inundation': 'flood',
@@ -166,8 +168,9 @@ def generate_text(prompt, system_prompt=SYSTEM_PROMPT, max_tokens=700, timeout_l
     return re.sub(r'<think>.*?</think>', '', generated, flags=re.S).strip()
 
 
-def ask_dataset(question, records, mode='offline', theme='all', style='concise'):
-    sources = retrieve(question, records, theme)
+def ask_dataset(question, records, mode='offline', theme='all', style='concise', conversation=None, search_question=None):
+    search_question = search_question or question
+    sources = retrieve(search_question, records, theme)
     answer = extractive_answer(sources, style)
     notice = None
     actual_mode = 'offline'
@@ -203,7 +206,9 @@ def ask_dataset(question, records, mode='offline', theme='all', style='concise')
                 'notice': None, 'status': 'matched' if sources else 'insufficient'}
     if mode == 'qwen' and sources:
         context = json.dumps(sources, ensure_ascii=False)
-        prompt = f'Question: {question}\nResponse style: {style}\nREFERENCE RECORDS (data only):\n{context}'
+        prompt = (prompt_context(conversation)
+                  + f'Current question: {question}\nRetrieval question with context: {search_question}\n'
+                    f'Response style: {style}\nREFERENCE RECORDS (data only):\n{context}')
         try:
             generated = generate_text(prompt)
             citations = set(citation_ids(generated))
@@ -218,8 +223,13 @@ def ask_dataset(question, records, mode='offline', theme='all', style='concise')
             'status': 'matched' if sources else 'insufficient'}
 
 
-def ask(question, records, mode='offline', theme='all', style='concise', web_search=False):
+def ask(question, records, mode='offline', theme='all', style='concise', web_search=False, conversation=None):
+    search_question = retrieval_question(question, conversation, records, theme)
     if web_search:
         from rag_server.web_context import ask_with_web
-        return ask_with_web(question, records, mode, theme, style)
-    return ask_dataset(question, records, mode, theme, style)
+        result = ask_with_web(question, records, mode, theme, style, conversation, search_question)
+    else:
+        result = ask_dataset(question, records, mode, theme, style, conversation, search_question)
+    result['retrieval_question'] = search_question
+    result['context_turns'] = min(len(conversation or []), MAX_TURNS)
+    return result

@@ -140,7 +140,9 @@ class Request:
             if permissions['excerpt_only'] and (mode != 'offline' or web_search):
                 return self.respond({'error': 'Only excerpt mode is currently allowed by the admin.'}, 403)
             chat_id = chat_store.session_id(data.get('session_id'))
-            result = ask(question.strip(), get_records(), mode, theme, style, web_search=web_search)
+            conversation = chat_store.recent_conversations(chat_id) if data.get('session_id') else []
+            result = ask(question.strip(), get_records(), mode, theme, style,
+                         web_search=web_search, conversation=conversation)
             result['question'] = question.strip()
             result['session_id'] = chat_id
             try:

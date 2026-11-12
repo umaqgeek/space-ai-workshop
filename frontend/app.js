@@ -171,6 +171,7 @@ function renderResponse(result) {
       <details class="response-detail"><summary><span>Clarification</span><span class="detail-hint">Mode, coverage and limitations</span></summary><div class="detail-content">
         ${result.notice ? `<div class="notice">${escapeHtml(result.notice)}</div>` : ''}
         <p>${generated ? 'The configured Ollama model generated this answer from the supplied dataset and any external references shown below. Valid source IDs do not guarantee that every claim is supported.' : computed ? 'This response was computed directly from all matching dataset records. Rankings use numeric metric values.' : 'This response contains retrieved excerpts, without LLM-generated analysis.'}</p>
+        ${result.context_turns ? `<p>This answer used ${result.context_turns} previous exchange${result.context_turns === 1 ? '' : 's'} from this session for context. Evidence was retrieved again for this question.</p>` : ''}
         <p>Dataset observations are synthetic examples. External web references provide separate context and do not validate the invented measurements. Check source dates, values and limitations; dataset rankings describe only the bundled sample records.</p>
         </div></details>
       <details class="response-detail"><summary><span>References <span class="reference-count">${referenceCount}</span></span><span class="detail-hint">Inspect dataset and web sources</span></summary><div class="detail-content">
@@ -183,12 +184,13 @@ function renderResponse(result) {
 const emptyChat = $('answer-panel').innerHTML;
 function renderConversations() {
   $('answer-panel').innerHTML = conversations.length ? conversations.map((result, index) =>
-    `<section class="chat-exchange" data-exchange="${index}" aria-label="Conversation ${index + 1}">${renderResponse(result)}</section>`).join('') : emptyChat;
+    `<section class="chat-exchange" data-exchange="${index}" aria-label="Conversation ${index + 1}">${renderResponse(result)}</section>`).reverse().join('') : emptyChat;
 }
 function setChatBusy(busy) {
   chatBusy = busy;
   $('ask-button').disabled = busy;
   $('new-chat').disabled = busy;
+  $('continue-chat').disabled = busy;
   $('history-list').inert = busy;
 }
 function newChat() {
@@ -197,6 +199,7 @@ function newChat() {
   conversations = [];
   latest = null;
   viewingHistory = false;
+  $('continue-chat').hidden = true;
   $('question-form').hidden = false;
   document.querySelector('.suggestions').hidden = false;
   $('chat-status').textContent = 'New session · ask a question to begin.';
@@ -223,6 +226,17 @@ async function loadHistory(append = false) {
   } finally { historyLoading = false; }
 }
 $('new-chat').addEventListener('click', newChat);
+$('continue-chat').addEventListener('click', () => {
+  if (chatBusy) return;
+  viewingHistory = false;
+  $('continue-chat').hidden = true;
+  $('question-form').hidden = false;
+  document.querySelector('.suggestions').hidden = false;
+  $('chat-status').textContent = 'Continuing this shared session · follow-up questions use its recent conversation.';
+  $('question').value = '';
+  resizeQuestion();
+  $('question').focus();
+});
 $('refresh-history').addEventListener('click', () => loadHistory());
 $('more-history').addEventListener('click', () => loadHistory(true));
 $('history-panel').addEventListener('toggle', () => { if ($('history-panel').open) loadHistory(); });
@@ -235,10 +249,11 @@ $('history-list').addEventListener('click', async event => {
     conversations = session.conversations;
     latest = conversations.at(-1) || null;
     viewingHistory = true;
-    chatSessionId = null;
+    chatSessionId = session.id;
+    $('continue-chat').hidden = false;
     $('question-form').hidden = true;
     document.querySelector('.suggestions').hidden = true;
-    $('chat-status').textContent = `Saved session: ${session.title} · Read only. Choose New chat to begin another session. Answers reflect the evidence saved at the time.`;
+    $('chat-status').textContent = `Saved session: ${session.title} · Choose Continue this session for a follow-up, or New chat to start fresh. Answers reflect the evidence saved at the time.`;
     renderConversations();
   } catch (error) { $('history-status').textContent = error.message; }
   finally { setChatBusy(false); }
@@ -259,7 +274,7 @@ $('question-form').addEventListener('submit', async event => {
   $('ask-button').textContent = useWeb ? 'Searching…' : 'Retrieving…';
   $('answer-panel').setAttribute('aria-busy','true');
   renderConversations();
-  $('answer-panel').insertAdjacentHTML('beforeend', `<div class="loading">${useWeb ? 'Searching the web and retrieving dataset evidence…' : 'Retrieving source records and preparing your answer…'}</div>`);
+  $('answer-panel').insertAdjacentHTML('afterbegin', `<div class="loading">${useWeb ? 'Searching the web and retrieving dataset evidence…' : 'Retrieving source records and preparing your answer…'}</div>`);
   const requestVersion = dataVersion;
   try {
     latest = await api('/api/ask', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({question, mode:$('engine').value, theme:$('topic').value, style:$('style').value, web_search:useWeb, ...(chatSessionId ? {session_id:chatSessionId} : {})})});
@@ -272,7 +287,7 @@ $('question-form').addEventListener('submit', async event => {
     if ($('history-panel').open) loadHistory();
   } catch (error) {
     renderConversations();
-    $('answer-panel').insertAdjacentHTML('beforeend', `<div class="response-primary"><h2>Could not complete this conversation</h2><p class="error">${escapeHtml(error.message)}</p><p class="muted">Submit your question again. Previously saved exchanges remain in history.</p></div>`);
+    $('answer-panel').insertAdjacentHTML('afterbegin', `<div class="response-primary"><h2>Could not complete this conversation</h2><p class="error">${escapeHtml(error.message)}</p><p class="muted">Submit your question again. Previously saved exchanges remain in history.</p></div>`);
   } finally {
     setChatBusy(false); $('ask-button').innerHTML = 'Find insights <span>↗</span>';
     $('answer-panel').removeAttribute('aria-busy');

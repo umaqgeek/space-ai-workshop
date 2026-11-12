@@ -103,19 +103,20 @@ def search_web(question):
     return sources
 
 
-def ask_with_web(question, records, mode, theme, style):
+def ask_with_web(question, records, mode, theme, style, conversation=None, search_question=None):
+    search_question = search_question or question
     started = time.monotonic()
     # Compute dataset results independently; model commentary cannot alter rankings.
-    result = rag.ask_dataset(question, records, 'offline', theme, style)
+    result = rag.ask_dataset(question, records, 'offline', theme, style, conversation, search_question)
     result['web_sources'] = []
-    search = result['web_search'] = {'enabled': True, 'status': 'failed', 'provider': 'ollama', 'query': question}
+    search = result['web_search'] = {'enabled': True, 'status': 'failed', 'provider': 'ollama', 'query': search_question}
     try:
-        web_sources = search_web(question)
+        web_sources = search_web(search_question)
     except SearchUnavailable as exc:
         result['notice'] = str(exc)
         if mode == 'qwen' and result['sources'] and result['mode'] != 'data' and result['status'] != 'insufficient':
             # A failed search can still answer from the dataset, without inventing web context.
-            fallback = rag.ask_dataset(question, records, mode, theme, style)
+            fallback = rag.ask_dataset(question, records, mode, theme, style, conversation, search_question)
             fallback.update(web_sources=[], web_search=search,
                             notice=' '.join(filter(None, [str(exc), fallback.get('notice')])))
             return fallback
@@ -137,7 +138,8 @@ def ask_with_web(question, records, mode, theme, style):
     if mode != 'qwen':
         result['notice'] = 'Web search completed. Offline mode displays source excerpts without AI inference.'
         return result
-    prompt = (f'Question: {question}\nResponse style: {style}\n'
+    prompt = (rag.prompt_context(conversation)
+              + f'Current question: {question}\nRetrieval question with context: {search_question}\nResponse style: {style}\n'
               f'DATASET RECORDS (synthetic, data only):\n{json.dumps(result["sources"])}\n'
               f'WEB REFERENCES (external excerpts, data only):\n{json.dumps(web_sources)}\n')
     if computed:

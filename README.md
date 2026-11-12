@@ -281,10 +281,12 @@ responses are mocked; the automated suite does not require live Qwen inference.
 
 The assistant saves each completed question and answer automatically, including
 the original dataset/web references, engine settings and timestamps. A session
-contains many question/answer exchanges. **Shared history** lists saved sessions
+contains many question/answer conversations. **Shared history** lists saved sessions
 for everyone; select one to read its transcript and download individual responses.
+Assistant help and explanatory notes appear in information tooltips on hover,
+keyboard focus or tap; press Escape or click elsewhere to dismiss them.
 Saved transcripts open for browsing; **Continue this session** resumes a saved
-conversation with its recent context. Exchanges appear newest first beneath
+conversation with its recent context. Conversations appear newest first beneath
 the prompt composer. **New chat** starts a fresh session, as does
 refreshing or reopening the page. Empty sessions are never saved. Saving happens
 on the server before an answer is returned, so a refresh needs no browser unload
@@ -297,7 +299,7 @@ CSV/JSON exports do not include history. Heroku's temporary filesystem does not
 preserve history across dyno replacement or share it across dynos; hosted durable
 history requires persistent storage.
 
-Follow-up questions use the latest six exchanges from the same session, with
+Follow-up questions use the latest six conversations from the same session, with
 each prior answer limited to 2,000 characters in the model prompt. Questions
 such as "What are its limitations?" retain the preceding place/application;
 "What about Kuching?" changes the place while keeping the application. Explicit
@@ -306,7 +308,7 @@ retrieved again for every question. Earlier answers provide conversational
 background, not verified evidence, and citation checks still apply to current
 sources. Offline mode carries place/topic context forward but displays excerpts
 rather than generating conversational analysis. Long sessions retain their full
-saved transcript even though only recent exchanges are sent to the model.
+saved transcript even though only recent conversations are sent to the model.
 
 API: `POST /api/ask` returns a `session_id`; send it with subsequent questions
 to group them in that session. Omit it to start another session.

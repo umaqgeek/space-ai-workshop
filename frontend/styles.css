@@ -242,3 +242,19 @@ textarea::placeholder, input::placeholder { color: #a0aec6; }
   .question-composer .composer-footer{flex-wrap:wrap}
   #question-hint{flex:1;min-width:120px}
 }
+
+/* Assistant help stays available on hover, keyboard focus and touch. */
+.note-trigger{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;vertical-align:middle;width:28px;height:28px;padding:0;border:1px solid transparent;border-radius:50%;background:transparent;color:var(--muted);font-size:16px;line-height:1;cursor:help}
+.note-trigger:hover,.note-trigger:focus-visible{background:var(--accent-soft);border-color:var(--line);color:var(--ink)}
+.assistant-tooltip{position:fixed;z-index:1000;width:max-content;max-width:min(360px,calc(100vw - 24px));max-height:min(420px,calc(100dvh - 32px));overflow:auto;padding:14px 16px;border:1px solid var(--border-strong);border-radius:12px;background:#0b1022;color:var(--ink);box-shadow:0 12px 36px #0006;font-size:12px;font-weight:400;line-height:1.7;white-space:pre-wrap;overflow-wrap:anywhere;letter-spacing:normal}
+.assistant-heading>div{display:flex;align-items:center;flex-wrap:wrap;gap:0 8px}
+.assistant-heading .eyebrow{width:100%}
+.composer-session{display:flex;justify-content:flex-end;margin:-8px -6px 4px}
+.question-composer .composer-footer{justify-content:space-between}
+#view-assistant .web-search-control{justify-content:flex-start;gap:8px}
+#view-assistant .chat-toolbar h2{display:flex;align-items:center;gap:2px;font-size:16px}
+#view-assistant .chat-toolbar{gap:8px}
+#view-assistant .chat-history #history-status.sr-only{margin:0;padding:0}
+#view-assistant .source .note-trigger{margin-top:0}
+#view-assistant .pipeline strong{display:inline}
+#view-assistant .empty-answer{padding:20px 0}

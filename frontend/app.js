@@ -1,6 +1,72 @@
 'use strict';
 const $ = id => document.getElementById(id);
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+function noteTooltip(note, label = 'More information') {
+  return `<button type="button" class="note-trigger" data-tooltip="${escapeHtml(note)}" aria-label="${escapeHtml(label)}">ⓘ</button>`;
+}
+// One floating tooltip avoids clipping inside cards, source lists and the composer.
+const assistantTooltip = document.createElement('div');
+assistantTooltip.id = 'assistant-tooltip';
+assistantTooltip.className = 'assistant-tooltip';
+assistantTooltip.setAttribute('role', 'tooltip');
+assistantTooltip.hidden = true;
+document.body.append(assistantTooltip);
+let tooltipTrigger = null, tooltipTimer = null;
+const noteSelector = '#view-assistant [data-tooltip], #view-assistant [data-tooltip-source]';
+function hideNote() {
+  clearTimeout(tooltipTimer);
+  if (tooltipTrigger && !tooltipTrigger.dataset.tooltipSource) tooltipTrigger.removeAttribute('aria-describedby');
+  tooltipTrigger = null;
+  assistantTooltip.hidden = true;
+}
+function positionNote() {
+  if (!tooltipTrigger?.isConnected) { hideNote(); return; }
+  const anchor = tooltipTrigger.getBoundingClientRect();
+  const box = assistantTooltip.getBoundingClientRect();
+  assistantTooltip.style.left = `${Math.max(12, Math.min(anchor.right - box.width, window.innerWidth - box.width - 12))}px`;
+  const below = anchor.bottom + 8;
+  assistantTooltip.style.top = `${Math.max(12, below + box.height <= window.innerHeight - 12 ? below : anchor.top - box.height - 8)}px`;
+}
+function showNote(trigger) {
+  hideNote();
+  const content = trigger.dataset.tooltipSource ? $(trigger.dataset.tooltipSource)?.textContent : trigger.dataset.tooltip;
+  if (!content?.trim()) return;
+  tooltipTrigger = trigger;
+  assistantTooltip.textContent = content;
+  assistantTooltip.hidden = false;
+  if (!trigger.dataset.tooltipSource) trigger.setAttribute('aria-describedby', assistantTooltip.id);
+  positionNote();
+}
+function scheduleHideNote() {
+  clearTimeout(tooltipTimer);
+  tooltipTimer = setTimeout(() => {
+    if (!assistantTooltip.matches(':hover') && !tooltipTrigger?.matches(':hover') && document.activeElement !== tooltipTrigger) hideNote();
+  }, 150);
+}
+document.addEventListener('pointerover', event => {
+  const trigger = event.target.closest(noteSelector);
+  if (trigger && trigger !== tooltipTrigger) showNote(trigger);
+});
+document.addEventListener('pointerout', event => {
+  if (event.target.closest(noteSelector)) scheduleHideNote();
+});
+assistantTooltip.addEventListener('pointerenter', () => clearTimeout(tooltipTimer));
+assistantTooltip.addEventListener('pointerleave', scheduleHideNote);
+document.addEventListener('focusin', event => {
+  const trigger = event.target.closest(noteSelector);
+  if (trigger) showNote(trigger); else hideNote();
+});
+document.addEventListener('focusout', event => {
+  if (event.target === tooltipTrigger) scheduleHideNote();
+});
+document.addEventListener('keydown', event => { if (event.key === 'Escape') hideNote(); });
+document.addEventListener('click', event => {
+  const trigger = event.target.closest(noteSelector);
+  if (trigger) { event.preventDefault(); showNote(trigger); }
+  else if (!assistantTooltip.contains(event.target)) hideNote();
+});
+window.addEventListener('resize', hideNote);
+document.addEventListener('scroll', event => { if (!assistantTooltip.contains(event.target)) hideNote(); }, true);
 const titles = {assistant:'Intelligence assistant', explorer:'Data explorer', architecture:'Architecture', admin:'Admin'};
 let records = [], latest = null, malaysiaOutline = null;
 // Deliberately kept in memory: every page load starts a fresh session.
@@ -14,6 +80,7 @@ try { adminToken = localStorage.getItem(ADMIN_STORAGE_KEY) || ''; } catch (error
 const canUpdateRecords = () => permissionsReady && (isAdmin || permissions.allow_record_updates);
 const malaysianStates = ['Johor', 'Kedah', 'Kelantan', 'Melaka', 'Negeri Sembilan', 'Pahang', 'Penang', 'Perak', 'Perlis', 'Sabah', 'Sarawak', 'Selangor', 'Terengganu', 'Kuala Lumpur', 'Putrajaya', 'Labuan'];
 function showView(view) {
+  hideNote();
   if (!titles[view]) view = 'assistant';
   document.querySelectorAll('.view').forEach(section => {section.hidden = section.id !== `view-${view}`;});
   document.querySelectorAll('[data-view]').forEach(button => {
@@ -60,7 +127,7 @@ function sourceCard(record, inAnswer = false) {
     <dt>Sensor example</dt><dd>${r.sensor}</dd><dt>Metric</dt><dd>${r.metric}: <strong>${r.value} ${r.unit}</strong></dd>
     <dt>Cloud cover</dt><dd>${r.cloud_cover_pct}%${record.theme === 'flood' ? ' (not used for radar; placeholder)' : ''}</dd>
     <dt>Quality</dt><dd>${r.quality}</dd>${inAnswer ? `<dt>Selection</dt><dd>${record.retrieval_score === undefined ? 'Dataset query' : `BM25 score: ${r.retrieval_score} (match strength, not confidence)`}</dd>` : ''}</dl>
-    <p><strong>Limit:</strong> ${r.limitations}</p><p class="muted">Synthetic · ${r.provenance}</p>
+    ${inAnswer ? noteTooltip(`Limit: ${record.limitations}\nSynthetic · ${record.provenance}`, 'Source notes') : `<p><strong>Limit:</strong> ${r.limitations}</p><p class="muted">Synthetic · ${r.provenance}</p>`}
     ${inAnswer || !canUpdateRecords() ? '' : `<button type="button" class="text-button" id="edit-${r.id}" data-edit-record="${r.id}" ${editingRecord ? 'disabled' : ''}>Edit record</button>`}
     </details>`;
 }
@@ -151,7 +218,7 @@ function webSourceCard(source) {
   if (!url) return '';
   return `<details class="source web-source"><summary><span class="tag">${escapeHtml(source.id)}</span>${escapeHtml(source.title)}</summary>
     <p><a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(url)} ↗</a></p>
-    <p>${escapeHtml(source.content)}</p><p class="muted">External search excerpt · retrieved ${escapeHtml(source.retrieved_at)}. Retrieval time is not a publication date.</p></details>`;
+    <p>${escapeHtml(source.content)}</p>${noteTooltip(`External search excerpt · retrieved ${source.retrieved_at}. Retrieval time is not a publication date.`, 'Web source notes')}</details>`;
 }
 
 function renderResponse(result) {
@@ -161,20 +228,19 @@ function renderResponse(result) {
   const referenceCount = result.sources.length + webSources.length;
   const computed = result.mode === 'data';
   const title = result.status === 'insufficient' ? 'Insufficient evidence' : generated ? 'AI response' : computed ? 'Dataset results' : 'Retrieved excerpts';
+  const answerNotes = [
+    generated ? 'The configured Ollama model generated this answer from the supplied dataset and any external references shown below. Valid source IDs do not guarantee that every claim is supported.' : computed ? 'This response was computed directly from all matching dataset records. Rankings use numeric metric values.' : 'This response contains retrieved excerpts, without LLM-generated analysis.',
+    result.context_turns ? `This answer used ${result.context_turns} previous conversation${result.context_turns === 1 ? '' : 's'} from this session for context. Evidence was retrieved again for this question.` : '',
+    'Dataset observations are synthetic examples. External web references provide separate context and do not validate the invented measurements. Check source dates, values and limitations; dataset rankings describe only the bundled sample records.',
+  ].filter(Boolean).join('\n\n');
   return `<article class="response-primary" aria-label="${title}">
       <div class="answer-header"><div><span class="eyebrow">YOUR ANSWER</span><h2>${title}</h2></div><span class="tag response-mode ${generated ? 'generated' : ''}">${generated ? 'AI GENERATED' : computed ? 'DATASET RESULTS' : 'EXCERPT MODE'}</span></div>
       <p class="response-question">${escapeHtml(result.question)}</p>
       <div class="answer-text">${formatAnswer(responseContent(result))}</div>
-      <div class="response-context"><span class="tag">${webSources.length ? result.sources.length ? 'DATASET + WEB' : 'WEB REFERENCES' : 'SYNTHETIC DATA'}</span><span>${referenceCount} reference${referenceCount === 1 ? '' : 's'} retrieved</span>${webEnabled ? `<span class="web-search-status">${webSources.length ? 'Web search completed' : 'Web search unavailable or no results'}</span>` : ''}${result.notice ? '<span class="fallback-label">See clarification for details</span>' : ''}</div>
+      <div class="response-context"><span class="tag">${webSources.length ? result.sources.length ? 'DATASET + WEB' : 'WEB REFERENCES' : 'SYNTHETIC DATA'}</span><span>${referenceCount} reference${referenceCount === 1 ? '' : 's'} retrieved</span>${noteTooltip(answerNotes, 'About this answer')}${webEnabled ? noteTooltip(webSources.length ? 'Web search completed.' : 'Web search unavailable or no results.', 'Web search status') : ''}${result.notice ? noteTooltip(result.notice, 'Response notice') : ''}</div>
     </article>
     <div class="response-support" aria-label="Answer details">
-      <details class="response-detail"><summary><span>Clarification</span><span class="detail-hint">Mode, coverage and limitations</span></summary><div class="detail-content">
-        ${result.notice ? `<div class="notice">${escapeHtml(result.notice)}</div>` : ''}
-        <p>${generated ? 'The configured Ollama model generated this answer from the supplied dataset and any external references shown below. Valid source IDs do not guarantee that every claim is supported.' : computed ? 'This response was computed directly from all matching dataset records. Rankings use numeric metric values.' : 'This response contains retrieved excerpts, without LLM-generated analysis.'}</p>
-        ${result.context_turns ? `<p>This answer used ${result.context_turns} previous exchange${result.context_turns === 1 ? '' : 's'} from this session for context. Evidence was retrieved again for this question.</p>` : ''}
-        <p>Dataset observations are synthetic examples. External web references provide separate context and do not validate the invented measurements. Check source dates, values and limitations; dataset rankings describe only the bundled sample records.</p>
-        </div></details>
-      <details class="response-detail"><summary><span>References <span class="reference-count">${referenceCount}</span></span><span class="detail-hint">Inspect dataset and web sources</span></summary><div class="detail-content">
+      <details class="response-detail"><summary><span>References <span class="reference-count">${referenceCount}</span></span>${noteTooltip('Inspect the dataset records and external web sources used for this answer.', 'About references')}</summary><div class="detail-content">
         ${result.sources.length ? `<h3 class="reference-section-title">Dataset records · synthetic</h3>${result.sources.map(r => sourceCard(r, true)).join('')}` : '<p>No matching dataset records were retrieved.</p>'}
         ${webSources.length ? `<h3 class="reference-section-title">Web references · external search excerpts</h3>${webSources.map(webSourceCard).join('')}` : ''}
         </div></details>
@@ -211,17 +277,19 @@ function newChat() {
 async function loadHistory(append = false) {
   if (historyLoading) return;
   historyLoading = true;
+  $('history-status').classList.add('sr-only');
   $('history-status').textContent = 'Loading history…';
   try {
     const page = await api(`/api/history?offset=${append ? historyOffset : 0}`);
     const html = page.sessions.map(session => `<button type="button" class="history-entry" data-history-id="${escapeHtml(session.id)}">
-      <strong>${escapeHtml(session.title)}</strong><span>${escapeHtml(new Date(session.updated_at).toLocaleString())} · ${session.conversation_count} exchange${session.conversation_count === 1 ? '' : 's'}</span></button>`).join('');
+      <strong>${escapeHtml(session.title)}</strong><span>${escapeHtml(new Date(session.updated_at).toLocaleString())} · ${session.conversation_count} conversation${session.conversation_count === 1 ? '' : 's'}</span></button>`).join('');
     if (append) $('history-list').insertAdjacentHTML('beforeend', html);
     else $('history-list').innerHTML = html;
     historyOffset = page.next_offset;
     $('more-history').hidden = historyOffset === null;
     $('history-status').textContent = $('history-list').children.length ? 'Select a session to view its saved questions, answers and references.' : 'No saved conversations yet.';
   } catch (error) {
+    $('history-status').classList.remove('sr-only');
     $('history-status').textContent = error.message;
   } finally { historyLoading = false; }
 }
@@ -255,7 +323,7 @@ $('history-list').addEventListener('click', async event => {
     document.querySelector('.suggestions').hidden = true;
     $('chat-status').textContent = `Saved session: ${session.title} · Choose Continue this session for a follow-up, or New chat to start fresh. Answers reflect the evidence saved at the time.`;
     renderConversations();
-  } catch (error) { $('history-status').textContent = error.message; }
+  } catch (error) { $('history-status').classList.remove('sr-only'); $('history-status').textContent = error.message; }
   finally { setChatBusy(false); }
 });
 $('answer-panel').addEventListener('click', event => {
@@ -281,13 +349,13 @@ $('question-form').addEventListener('submit', async event => {
     chatSessionId = latest.session_id;
     conversations.push(latest);
     renderConversations();
-    $('chat-status').textContent = `Current session · ${conversations.length} saved exchange${conversations.length === 1 ? '' : 's'}.${requestVersion !== dataVersion ? ' The dataset changed during this answer; ask again for current values.' : ''}`;
+    $('chat-status').textContent = `Current session · ${conversations.length} saved conversation${conversations.length === 1 ? '' : 's'}.${requestVersion !== dataVersion ? ' The dataset changed during this answer; ask again for current values.' : ''}`;
     $('question').value = '';
     resizeQuestion();
     if ($('history-panel').open) loadHistory();
   } catch (error) {
     renderConversations();
-    $('answer-panel').insertAdjacentHTML('afterbegin', `<div class="response-primary"><h2>Could not complete this conversation</h2><p class="error">${escapeHtml(error.message)}</p><p class="muted">Submit your question again. Previously saved exchanges remain in history.</p></div>`);
+    $('answer-panel').insertAdjacentHTML('afterbegin', `<div class="response-primary"><h2>Could not complete this conversation</h2><p class="error">${escapeHtml(error.message)}</p>${noteTooltip('Submit your question again. Previously saved conversations remain in history.', 'Retry information')}</div>`);
   } finally {
     setChatBusy(false); $('ask-button').innerHTML = 'Find insights <span>↗</span>';
     $('answer-panel').removeAttribute('aria-busy');

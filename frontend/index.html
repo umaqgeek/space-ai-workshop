@@ -89,46 +89,45 @@
         </section>
       </section>
       <section id="view-assistant" class="view">
-        <header class="assistant-heading"><div><span class="eyebrow">INTELLIGENCE ASSISTANT</span><h1>What would you like to explore?</h1><p>Ask about a place. Follow the evidence.</p></div><span class="tag pale">SYNTHETIC TEACHING DATA</span></header>
+        <header class="assistant-heading"><div><span class="eyebrow">INTELLIGENCE ASSISTANT</span><h1>What would you like to explore?</h1><button type="button" class="note-trigger" data-tooltip="Ask about a place. Follow the evidence." aria-label="Assistant information">ⓘ</button></div><span class="tag pale">SYNTHETIC TEACHING DATA</span></header>
         <div class="metrics"><div><span class="metric-icon">▦</span><strong class="record-count">103</strong><span>curated observations</span></div><div><span class="metric-icon">⌖</span><strong class="location-count">28</strong><span>Malaysian locations</span></div><div><span class="metric-icon">◈</span><strong>04</strong><span>space-tech applications</span></div><div><span class="synthetic-dot"></span><span>100% synthetic sample data</span></div></div>
         <div class="workbench">
           <div class="assistant-column">
-          <section class="card ask-card"><div class="card-heading"><div><span class="eyebrow">YOUR MISSION CONTROL</span><h2>What would you like to explore?</h2></div><span class="tag pale">SOURCE-BACKED</span></div>
-            <p id="chat-status" class="muted" role="status">New session · ask a question to begin.</p>
+          <section class="card ask-card" aria-label="Prompt composer">
+            <div class="composer-session"><button type="button" class="note-trigger" data-tooltip-source="chat-status" aria-describedby="chat-status" aria-label="Session information">ⓘ</button></div><p id="chat-status" class="sr-only" role="status">New session · ask a question to begin.</p>
             <button id="continue-chat" class="primary" type="button" hidden>Continue this session ↗</button>
             <form id="question-form">
               <div class="question-composer">
                 <label for="question" class="sr-only">Geospatial question</label>
                 <textarea id="question" rows="1" maxlength="1000" minlength="3" required aria-describedby="question-hint" placeholder="Ask about a place or observation…"></textarea>
-                <div class="composer-footer"><span id="question-hint">Enter to find insights · Shift+Enter for a new line</span><button type="submit" class="primary" id="ask-button">Find insights <span>↗</span></button></div>
+                <div class="composer-footer"><button type="button" class="note-trigger" data-tooltip-source="question-hint" aria-describedby="question-hint" aria-label="Keyboard shortcuts">ⓘ</button><span id="question-hint" class="sr-only">Enter to find insights · Shift+Enter for a new line</span><button type="submit" class="primary" id="ask-button">Find insights <span>↗</span></button></div>
               </div>
               <div class="settings"><label>Answer engine<select id="engine"><option value="qwen" selected>AI Ollama</option><option value="offline">Offline · retrieved excerpts</option></select></label><label>Topic<select id="topic"><option value="all">All applications</option><option value="flood">Flood monitoring</option><option value="vegetation">Vegetation</option><option value="land-use">Land-use change</option><option value="coastal">Coastal observation</option></select></label><label>Answer style<select id="style"><option value="concise">Concise</option><option value="briefing">Field briefing</option></select></label></div>
-              <div class="web-search-control"><label class="web-search-toggle" for="web-search"><input id="web-search" type="checkbox" role="switch" aria-describedby="web-search-hint"><span class="switch-track" aria-hidden="true"></span><span>Web search</span></label><span id="web-search-hint">Off · dataset only</span></div>
+              <div class="web-search-control"><label class="web-search-toggle" for="web-search"><input id="web-search" type="checkbox" role="switch" aria-describedby="web-search-hint"><span class="switch-track" aria-hidden="true"></span><span>Web search</span></label><button type="button" class="note-trigger" data-tooltip-source="web-search-hint" aria-describedby="web-search-hint" aria-label="Web search information">ⓘ</button><span id="web-search-hint" class="sr-only">Off · dataset only</span></div>
             </form>
             <div class="suggestions"><span>TRY A QUESTION</span><button data-query="What do the flood observations in Klang show?">Flood observations in Klang ↗</button><button data-query="Compare vegetation in Kuching and Kota Kinabalu.">Compare vegetation ↗</button><button data-query="What do coastal observations show in Terengganu?">Coastal observations in Terengganu ↗</button></div>
           </section>
-          <section id="answer-panel" class="card answer-card" tabindex="-1" aria-label="Conversation" aria-live="polite"><div class="empty-answer"><span class="empty-icon">⌁</span><h3>A good answer starts with evidence.</h3><p>Your answer and its reference records will appear here.<br>Every source is yours to inspect.</p><span class="text-badge">QUESTION → RETRIEVE → ANSWER → VERIFY</span></div></section>
+          <section id="answer-panel" class="card answer-card" tabindex="-1" aria-label="Conversation" aria-live="polite"><div class="empty-answer"><span class="empty-icon">⌁</span><h3>A good answer starts with evidence.</h3><button type="button" class="note-trigger" data-tooltip="Your answer and its reference records will appear here. Every source is yours to inspect. Question → retrieve → answer → verify." aria-label="Conversation information">ⓘ</button></div></section>
           </div>
           <aside class="right-column" aria-label="Conversation history and assistant information">
           <section class="card chat-history" aria-label="Conversation history">
-            <div class="chat-toolbar"><h2>Conversations</h2><button id="new-chat" type="button" class="primary">New chat +</button></div>
-            <p class="muted">Chats are saved automatically and visible to everyone. Refreshing starts a new session.</p>
-            <details id="history-panel" open><summary>Shared history</summary>
+            <div class="chat-toolbar"><h2>Conversations <button type="button" class="note-trigger" data-tooltip="Chats are saved automatically and visible to everyone. Refreshing starts a new session." aria-label="History information">ⓘ</button></h2><button id="new-chat" type="button" class="primary">New chat +</button></div>
+            <details id="history-panel" open><summary>Shared history <button type="button" class="note-trigger" data-tooltip-source="history-status" aria-describedby="history-status" aria-label="History status">ⓘ</button></summary>
               <button id="refresh-history" type="button" class="text-button">Refresh history ↻</button>
-              <p id="history-status" role="status" aria-live="polite"></p>
+              <p id="history-status" class="sr-only" role="status" aria-live="polite"></p>
               <div id="history-list"></div>
               <button id="more-history" type="button" class="text-button" hidden>Load more</button>
             </details>
           </section>
 
             <details class="card pipeline-card support-panel">
-              <summary><span>How it works</span><span class="detail-hint">From question to evidence</span></summary>
-              <ol class="pipeline"><li><span>01</span><div><strong>Ask in your own words</strong><p>A question about a place or observation.</p></div></li><li><span>02</span><div><strong>Retrieve relevant records</strong><p>BM25 search finds matching reference data.</p></div></li><li><span>03</span><div><strong>Build a grounded answer</strong><p>Read excerpts, or let the configured model draft with citations.</p></div></li><li><span>04</span><div><strong>Check the source</strong><p>Verify the date, value and limitations.</p></div></li></ol>
+              <summary><span>How it works</span><button type="button" class="note-trigger" data-tooltip="From question to evidence." aria-label="How it works information">ⓘ</button></summary>
+              <ol class="pipeline"><li><span>01</span><div><strong>Ask in your own words</strong> <button type="button" class="note-trigger" data-tooltip="A question about a place or observation." aria-label="About ask in your own words">ⓘ</button></div></li><li><span>02</span><div><strong>Retrieve relevant records</strong> <button type="button" class="note-trigger" data-tooltip="BM25 search finds matching reference data." aria-label="About retrieve relevant records">ⓘ</button></div></li><li><span>03</span><div><strong>Build a grounded answer</strong> <button type="button" class="note-trigger" data-tooltip="Read excerpts, or let the configured model draft with citations." aria-label="About build a grounded answer">ⓘ</button></div></li><li><span>04</span><div><strong>Check the source</strong> <button type="button" class="note-trigger" data-tooltip="Verify the date, value and limitations." aria-label="About check the source">ⓘ</button></div></li></ol>
               <button class="text-button" id="show-prompt">Inspect the AI system prompt ↗</button><pre id="prompt-content" hidden></pre>
             </details>
             <details class="card support-panel">
-              <summary><span>About the dataset</span><span class="detail-hint">Synthetic sample observations</span></summary>
-              <p class="muted">These invented records help you practise RAG. They are not live satellite measurements or operational advice.</p><button class="text-button" data-go="explorer">Meet your dataset ↗</button>
+              <summary><span>About the dataset</span><button type="button" class="note-trigger" data-tooltip="These invented records help you practise RAG. They are not live satellite measurements or operational advice." aria-label="Dataset information">ⓘ</button></summary>
+              <button class="text-button" data-go="explorer">Meet your dataset ↗</button>
             </details>
           </aside>
         </div>

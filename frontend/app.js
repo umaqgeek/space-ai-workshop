@@ -574,4 +574,5 @@ setInterval(() => {
   }
 }, 15000);
 applyPermissions();
+loadHistory();
 init();

@@ -89,39 +89,37 @@
         </section>
       </section>
       <section id="view-assistant" class="view">
-        <div class="hero">
-          <div class="hero-copy"><div class="eyebrow"><span class="tiny-star">✦</span> FROM SPACE DATA TO AI</div><h1>Big questions.<br><span>Grounded answers.</span></h1><p>Turn satellite observations into insights you can trace.<br>Ask a question. Explore the evidence. Make the connection.</p><div class="hero-meta"><span>↗ Across Malaysia</span><span>◷ Sample snapshot · Oct 2026</span></div></div>
-          <div class="orbital-art" aria-hidden="true"><div class="orbit orbit-one"></div><div class="orbit orbit-two"></div><div class="planet"><div class="land land-one"></div><div class="land land-two"></div><div class="planet-grid"></div></div><span class="satellite">✦</span><span class="coordinate coord-one">3.0733° N</span><span class="coordinate coord-two">101.5185° E</span><span class="art-label">EARTH OBSERVATION / MALAYSIA</span></div>
-        </div>
+        <header class="assistant-heading"><div><span class="eyebrow">INTELLIGENCE ASSISTANT</span><h1>What would you like to explore?</h1><p>Ask about a place. Follow the evidence.</p></div><span class="tag pale">SYNTHETIC TEACHING DATA</span></header>
         <div class="metrics"><div><span class="metric-icon">▦</span><strong class="record-count">103</strong><span>curated observations</span></div><div><span class="metric-icon">⌖</span><strong class="location-count">28</strong><span>Malaysian locations</span></div><div><span class="metric-icon">◈</span><strong>04</strong><span>space-tech applications</span></div><div><span class="synthetic-dot"></span><span>100% synthetic sample data</span></div></div>
         <div class="workbench">
           <div class="assistant-column">
-          <section class="card chat-history" aria-label="Conversation history">
-            <div class="chat-toolbar"><h2>Conversations</h2><button id="new-chat" type="button" class="primary">New chat +</button></div>
-            <p class="muted">Chats are saved automatically and visible to everyone. Refreshing starts a new session.</p>
-            <details id="history-panel"><summary>Shared history</summary>
-              <button id="refresh-history" type="button" class="text-button">Refresh history ↻</button>
-              <p id="history-status" role="status" aria-live="polite"></p>
-              <div id="history-list"></div>
-              <button id="more-history" type="button" class="text-button" hidden>Load more</button>
-            </details>
-            <p id="chat-status" class="muted" role="status">New session · ask a question to begin.</p>
-          </section>
           <section class="card ask-card"><div class="card-heading"><div><span class="eyebrow">YOUR MISSION CONTROL</span><h2>What would you like to explore?</h2></div><span class="tag pale">SOURCE-BACKED</span></div>
+            <p id="chat-status" class="muted" role="status">New session · ask a question to begin.</p>
             <form id="question-form">
-              <div class="settings"><label>Answer engine<select id="engine"><option value="qwen" selected>AI Ollama</option><option value="offline">Offline · retrieved excerpts</option></select></label><label>Topic<select id="topic"><option value="all">All applications</option><option value="flood">Flood monitoring</option><option value="vegetation">Vegetation</option><option value="land-use">Land-use change</option><option value="coastal">Coastal observation</option></select></label><label>Answer style<select id="style"><option value="concise">Concise</option><option value="briefing">Field briefing</option></select></label></div>
-              <div class="web-search-control"><label class="web-search-toggle" for="web-search"><input id="web-search" type="checkbox" role="switch" aria-describedby="web-search-hint"><span class="switch-track" aria-hidden="true"></span><span>Web search</span></label><span id="web-search-hint">Off · dataset only</span></div>
               <div class="question-composer">
                 <label for="question" class="sr-only">Geospatial question</label>
                 <textarea id="question" rows="1" maxlength="1000" minlength="3" required aria-describedby="question-hint" placeholder="Ask about a place or observation…"></textarea>
                 <div class="composer-footer"><span id="question-hint">Enter to find insights · Shift+Enter for a new line</span><button type="submit" class="primary" id="ask-button">Find insights <span>↗</span></button></div>
               </div>
+              <div class="settings"><label>Answer engine<select id="engine"><option value="qwen" selected>AI Ollama</option><option value="offline">Offline · retrieved excerpts</option></select></label><label>Topic<select id="topic"><option value="all">All applications</option><option value="flood">Flood monitoring</option><option value="vegetation">Vegetation</option><option value="land-use">Land-use change</option><option value="coastal">Coastal observation</option></select></label><label>Answer style<select id="style"><option value="concise">Concise</option><option value="briefing">Field briefing</option></select></label></div>
+              <div class="web-search-control"><label class="web-search-toggle" for="web-search"><input id="web-search" type="checkbox" role="switch" aria-describedby="web-search-hint"><span class="switch-track" aria-hidden="true"></span><span>Web search</span></label><span id="web-search-hint">Off · dataset only</span></div>
             </form>
             <div class="suggestions"><span>TRY A QUESTION</span><button data-query="What do the flood observations in Klang show?">Flood observations in Klang ↗</button><button data-query="Compare vegetation in Kuching and Kota Kinabalu.">Compare vegetation ↗</button><button data-query="What do coastal observations show in Terengganu?">Coastal observations in Terengganu ↗</button></div>
           </section>
-          <section id="answer-panel" class="card answer-card" tabindex="-1" aria-label="Assistant response" aria-live="polite"><div class="empty-answer"><span class="empty-icon">⌁</span><h3>A good answer starts with evidence.</h3><p>Your answer and its reference records will appear here.<br>Every source is yours to inspect.</p><span class="text-badge">QUESTION → RETRIEVE → ANSWER → VERIFY</span></div></section>
+          <section id="answer-panel" class="card answer-card" tabindex="-1" aria-label="Conversation" aria-live="polite"><div class="empty-answer"><span class="empty-icon">⌁</span><h3>A good answer starts with evidence.</h3><p>Your answer and its reference records will appear here.<br>Every source is yours to inspect.</p><span class="text-badge">QUESTION → RETRIEVE → ANSWER → VERIFY</span></div></section>
           </div>
-          <aside class="right-column" aria-label="About the assistant">
+          <aside class="right-column" aria-label="Conversation history and assistant information">
+          <section class="card chat-history" aria-label="Conversation history">
+            <div class="chat-toolbar"><h2>Conversations</h2><button id="new-chat" type="button" class="primary">New chat +</button></div>
+            <p class="muted">Chats are saved automatically and visible to everyone. Refreshing starts a new session.</p>
+            <details id="history-panel" open><summary>Shared history</summary>
+              <button id="refresh-history" type="button" class="text-button">Refresh history ↻</button>
+              <p id="history-status" role="status" aria-live="polite"></p>
+              <div id="history-list"></div>
+              <button id="more-history" type="button" class="text-button" hidden>Load more</button>
+            </details>
+          </section>
+
             <details class="card pipeline-card support-panel">
               <summary><span>How it works</span><span class="detail-hint">From question to evidence</span></summary>
               <ol class="pipeline"><li><span>01</span><div><strong>Ask in your own words</strong><p>A question about a place or observation.</p></div></li><li><span>02</span><div><strong>Retrieve relevant records</strong><p>BM25 search finds matching reference data.</p></div></li><li><span>03</span><div><strong>Build a grounded answer</strong><p>Read excerpts, or let the configured model draft with citations.</p></div></li><li><span>04</span><div><strong>Check the source</strong><p>Verify the date, value and limitations.</p></div></li></ol>

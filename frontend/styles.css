@@ -206,3 +206,39 @@ textarea::placeholder, input::placeholder { color: #a0aec6; }
 @media(max-width:680px) { .brand-icon { width: 48px; height: auto; } .brand-academy { font-size: 8px; } }
 
 .admin-card{max-width:720px;margin-bottom:40px}.admin-card form{display:grid;gap:16px}.admin-card label{display:grid;gap:8px}.admin-card input[type="password"]{width:100%;padding:12px;background:var(--surface-soft);color:var(--ink);border:1px solid var(--border-strong);border-radius:8px}.admin-card .admin-option{display:flex;align-items:center;gap:12px;font-weight:650}.admin-card input[type="checkbox"]{width:20px;height:20px;accent-color:var(--accent)}.admin-card button{justify-self:start}.admin-card #admin-signout{margin-top:24px}
+
+/* Chat workspace: prompt and transcript in the main column, history on the right. */
+.assistant-heading{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:32px 0 20px}
+.assistant-heading h1{font-size:clamp(24px,2.4vw,34px);line-height:1.2;letter-spacing:-1px;margin:9px 0}
+.assistant-heading p{color:var(--muted);font-size:12px;margin:0}
+#view-assistant .metrics{padding:12px 0;margin-bottom:22px;flex-wrap:wrap;justify-content:flex-start;gap:12px 24px}
+#view-assistant .metrics strong{font-size:15px}
+#view-assistant .workbench{grid-template-columns:minmax(0,1fr) 280px;align-items:start;gap:24px}
+.assistant-column{min-width:0}
+#view-assistant .right-column{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;position:sticky;top:20px;min-width:0}
+.right-column .chat-history{margin:0;padding:20px}
+.chat-toolbar{flex-wrap:wrap;gap:12px}
+.chat-toolbar .primary{font-size:11px;padding:8px 13px}
+.chat-history .muted,.chat-history #history-status{font-size:11px;line-height:1.7}
+.chat-history #history-list{max-height:min(48vh,480px)}
+.history-entry strong{font-size:12px;font-weight:550}
+.history-entry span{font-size:10px}
+.ask-card>.card-heading{display:none}
+#chat-status{margin:0 0 14px;font-size:11px;overflow-wrap:anywhere}
+.ask-card .settings{margin:14px 0 12px;grid-template-columns:repeat(3,minmax(0,1fr))}
+.ask-card .settings select{width:100%;min-width:0}
+.ask-card .web-search-control{margin-bottom:0}
+.ask-card .suggestions{margin-top:16px;padding-top:12px}
+.chat-exchange .response-question{width:fit-content;max-width:100%;margin-left:auto;padding:12px 16px;border:1px solid var(--line);border-radius:16px 16px 4px 16px;background:var(--surface-soft);color:var(--ink)}
+@media(max-width:1050px){
+  #view-assistant .workbench{grid-template-columns:minmax(0,1fr)}
+  #view-assistant .right-column{position:static}
+  .assistant-heading>.tag{display:none}
+}
+@media(max-width:680px){
+  .assistant-heading{padding-top:24px}
+  #view-assistant .metrics{gap:10px 18px}
+  .ask-card .settings{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .question-composer .composer-footer{flex-wrap:wrap}
+  #question-hint{flex:1;min-width:120px}
+}

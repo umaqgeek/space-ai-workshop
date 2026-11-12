@@ -95,14 +95,58 @@ function showView(view) {
   if (view === 'admin' && !isAdmin) $('admin-password').focus();
 }
 document.querySelectorAll('[data-view], [data-go]').forEach(button => button.addEventListener('click', () => showView(button.dataset.view || button.dataset.go)));
+function revealAdmin() {
+  adminEntryRevealed = true;
+  applyPermissions();
+  showView('admin');
+}
 document.addEventListener('keydown', event => {
   if (event.repeat || event.isComposing || event.altKey || !event.shiftKey || !(event.metaKey || event.ctrlKey)) return;
   if (event.code !== 'KeyU' && event.key.toLowerCase() !== 'u') return;
   event.preventDefault();
-  adminEntryRevealed = true;
-  applyPermissions();
-  showView('admin');
+  revealAdmin();
 });
+const brandLink = document.querySelector('.brand');
+let adminHold = null, suppressBrandClick = false;
+function cancelAdminHold() {
+  if (adminHold) clearTimeout(adminHold.timer);
+  adminHold = null;
+}
+brandLink.addEventListener('pointerdown', event => {
+  if (!event.isPrimary || event.button !== 0) return;
+  cancelAdminHold();
+  suppressBrandClick = false;
+  adminHold = {pointerId:event.pointerId, x:event.clientX, y:event.clientY};
+  adminHold.timer = setTimeout(() => {
+    suppressBrandClick = true;
+    revealAdmin();
+  }, 5000);
+});
+document.addEventListener('pointerdown', event => {
+  if (adminHold && event.pointerId !== adminHold.pointerId) cancelAdminHold();
+});
+document.addEventListener('pointermove', event => {
+  if (adminHold && event.pointerId === adminHold.pointerId
+      && Math.hypot(event.clientX - adminHold.x, event.clientY - adminHold.y) > 12) cancelAdminHold();
+});
+for (const type of ['pointerup', 'pointercancel']) {
+  document.addEventListener(type, event => {
+    if (event.pointerId === adminHold?.pointerId) cancelAdminHold();
+  });
+}
+brandLink.addEventListener('pointerleave', cancelAdminHold);
+brandLink.addEventListener('contextmenu', event => {
+  if (adminHold || suppressBrandClick) event.preventDefault();
+});
+brandLink.addEventListener('click', event => {
+  if (suppressBrandClick) {
+    event.preventDefault();
+    suppressBrandClick = false;
+  }
+});
+document.addEventListener('scroll', cancelAdminHold, true);
+document.addEventListener('visibilitychange', cancelAdminHold);
+window.addEventListener('blur', cancelAdminHold);
 document.querySelectorAll('[data-architecture-target]').forEach(button => button.addEventListener('click', () => {
   const section = $(button.dataset.architectureTarget);
   section.open = true;

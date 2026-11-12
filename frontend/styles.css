@@ -203,6 +203,7 @@ textarea::placeholder, input::placeholder { color: #a0aec6; }
 .brand-icon { display: block; flex-shrink: 0; width: 56px; height: auto; object-fit: contain; }
 .brand-academy { margin: 10px 0 0; color: var(--muted); font-size: 9px; letter-spacing: 1px; text-decoration: none; }
 .brand-academy:hover { color: var(--accent-light); text-decoration: underline; }
+.brand{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
 @media(max-width:680px) { .brand-icon { width: 48px; height: auto; } .brand-academy { font-size: 8px; } }
 
 .admin-card{max-width:720px;margin-bottom:40px}.admin-card form{display:grid;gap:16px}.admin-card label{display:grid;gap:8px}.admin-card input[type="password"]{width:100%;padding:12px;background:var(--surface-soft);color:var(--ink);border:1px solid var(--border-strong);border-radius:8px}.admin-card .admin-option{display:flex;align-items:center;gap:12px;font-weight:650}.admin-card input[type="checkbox"]{width:20px;height:20px;accent-color:var(--accent)}.admin-card button{justify-self:start}.admin-card #admin-signout{margin-top:24px}

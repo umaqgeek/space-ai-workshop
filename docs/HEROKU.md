@@ -80,8 +80,11 @@ dataset exports do not contain chat history.
 ## 3. Admin access and GitHub deployment secrets
 
 Admin navigation and its password form are hidden for signed-out users. Press
-**Cmd+Shift+U** on macOS or **Ctrl+Shift+U** on Windows/Linux to reveal the Admin
-entry and open the password form. This reveal lasts only for the current page;
+**Cmd+Shift+U** on macOS or **Ctrl+Shift+U** on Windows/Linux, or press and hold
+the SpaceLab logo for **five seconds** on mobile, to reveal the Admin entry and
+open the password form. Releasing early, moving, scrolling or switching away
+cancels the hold. A normal tap still opens the home page.
+This reveal lasts only for the current page;
 refreshing or signing out hides it again. Authenticated admins see the Admin
 entry normally. Opening `#admin` does not reveal the form to signed-out users.
 The shortcut reveals the interface; the backend still verifies the password

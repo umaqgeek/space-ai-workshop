@@ -69,7 +69,56 @@ by ID in one SQLite transaction. Importing a CSV does not change the deployed
 sample files. Backing up CSV/JSON exports captures the merged dataset; the
 SQLite file retains the saved overrides and additions.
 
-## 3. Connect hosted Qwen separately
+## 3. Admin access and GitHub deployment secrets
+
+The Admin button opens a password form. The backend verifies the password
+against its `ADMIN_PASSWORD` environment variable. No password is included in
+the frontend or saved in browser storage. A successful login stores an opaque
+session token in `localStorage` under `spacelab.adminSession`. Sessions expire
+after seven days; changing `ADMIN_PASSWORD` invalidates existing sessions.
+Sign out clears that browser's stored token and revokes the server session.
+Tabs in the same browser share the login. With no password configured, admin
+login is disabled.
+
+For GitHub deployments, create these repository Actions settings:
+
+| Kind | Name | Value |
+| --- | --- | --- |
+| Secret | `ADMIN_PASSWORD` | A strong admin password |
+| Secret | `HEROKU_API_KEY` | The deployment account's Heroku API key |
+| Variable | `HEROKU_APP_NAME` | The existing Heroku application's name |
+
+Enable Heroku Git deployment for the app, push these changes to GitHub, then
+run **Actions → Deploy to Heroku → Run workflow** on the branch to deploy.
+The workflow runs tests, sets `ADMIN_PASSWORD` as a Heroku runtime config var,
+then pushes the selected checkout to Heroku. Passwords and config responses
+are never printed or added to source. GitHub secrets do not reach Heroku
+automatically when using Heroku's separate automatic GitHub integration;
+use this workflow or set `ADMIN_PASSWORD` in Heroku Config Vars yourself.
+
+For local development, export `ADMIN_PASSWORD` before starting the Python
+server. The backend does not automatically load `.env`.
+
+Under **Admin**, sign in and use **Save settings** to apply:
+
+- **Force excerpt mode only:** disables AI and web search for everyone.
+  Turning it off allows both excerpt and AI modes.
+- **Allow users to update records:** turning it off blocks ordinary users'
+  record edits and CSV uploads, including requests made directly to the API.
+  Admins retain editing and upload access.
+
+Defaults preserve both answer modes and allow user updates. Settings are
+shared server-side; other browsers refresh their controls within 15 seconds
+while visible. API restrictions apply immediately to subsequent requests.
+An already running answer or save may complete with the previous settings.
+
+Settings and sessions use the same SQLite location as record edits, under
+`SPACELAB_DATA_DIR`. They share the existing Heroku ephemeral filesystem limit:
+dyno replacement resets settings to defaults and requires admins to sign in
+again; multiple dynos do not share these settings. Use one dyno for this
+workshop deployment and persistent shared storage for durable multi-dyno use.
+
+## 4. Connect hosted Qwen separately
 
 **Heroku cannot reach your laptop's Ollama through `127.0.0.1`.** The current
 configuration is not a plan to install Ollama or run model weights in the web

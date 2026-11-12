@@ -10,6 +10,7 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 from rag_server.rag import ask, SYSTEM_PROMPT
+from backend import admin
 from data.record_store import get_records, update_record, export_records, import_csv, EditConflict, RecordNotFound
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -34,6 +35,10 @@ class Request:
 
     def do_GET(self):
         path = urlsplit(self.path).path
+        if path == '/api/settings':
+            return self.respond(admin.settings())
+        if path == '/api/admin/session':
+            return self.respond({'admin': admin.is_admin(self.headers.get('Authorization', ''))})
         if path == '/api/health':
             return self.respond({'status': 'ok', 'records': len(get_records()), 'default_mode': 'offline', 'qwen': 'optional; connection checked when answering'})
         if path == '/api/records':
@@ -71,13 +76,18 @@ class Request:
         path = urlsplit(self.path).path
         edit = re.fullmatch(r'/api/records/([A-Z]+-\d{3})', path)
         importing = path == '/api/records/import'
-        if path != '/api/ask' and not edit and not importing:
+        admin_route = path in ('/api/admin/login', '/api/admin/logout', '/api/admin/settings')
+        if path != '/api/ask' and not edit and not importing and not admin_route:
             return self.respond({'error': 'Not found'}, 404)
         try:
             size = int(self.headers.get('Content-Length', '0'))
             limit = MAX_CSV_BODY if importing else MAX_BODY
             if size <= 0 or size > limit:
                 return self.respond({'error': f'Request must contain 1–{limit} bytes.'}, 413)
+            authorization = self.headers.get('Authorization', '')
+            permissions = admin.settings()
+            if (edit or importing) and not permissions['allow_record_updates'] and not admin.is_admin(authorization):
+                return self.respond({'error': 'Record updates and CSV uploads are disabled by an admin.'}, 403)
             if importing:
                 if self.headers.get('Content-Type', '').split(';')[0].strip().lower() != 'text/csv':
                     return self.respond({'error': 'CSV uploads require text/csv.'}, 415)
@@ -86,6 +96,18 @@ class Request:
             data = json.loads(self.rfile.read(size))
             if not isinstance(data, dict):
                 raise ValueError('Expected a JSON object.')
+            if path == '/api/admin/login':
+                try:
+                    return self.respond({'token': admin.login(data.get('password'))})
+                except RuntimeError as exc:
+                    return self.respond({'error': str(exc)}, 503)
+            if path == '/api/admin/logout':
+                admin.logout(authorization)
+                return self.respond({'admin': False})
+            if path == '/api/admin/settings':
+                if not admin.is_admin(authorization):
+                    return self.respond({'error': 'Sign in as an admin to change settings.'}, 403)
+                return self.respond(admin.settings(data))
             if edit:
                 if self.headers.get('Content-Type', '').split(';')[0].strip().lower() != 'application/json':
                     return self.respond({'error': 'Record edits require application/json.'}, 415)
@@ -100,6 +122,8 @@ class Request:
             web_search = data.get('web_search', False)
             if type(web_search) is not bool:
                 raise ValueError('Web search must be true or false.')
+            if permissions['excerpt_only'] and (mode != 'offline' or web_search):
+                return self.respond({'error': 'Only excerpt mode is currently allowed by the admin.'}, 403)
             result = ask(question.strip(), get_records(), mode, theme, style, web_search=web_search)
             result['question'] = question.strip()
             return self.respond(result)
@@ -107,6 +131,8 @@ class Request:
             return self.respond({'error': str(exc)}, 409)
         except RecordNotFound as exc:
             return self.respond({'error': str(exc)}, 404)
+        except PermissionError as exc:
+            return self.respond({'error': str(exc)}, 403)
         except (OSError, sqlite3.Error):
             return self.respond({'error': 'Could not save this record. Try again; your edits have not been saved.'}, 500)
         except (ValueError, TypeError, UnicodeDecodeError, csv.Error) as exc:
@@ -128,7 +154,8 @@ def application(environ, start_response):
     status, headers, body = dispatch(
         environ['REQUEST_METHOD'], environ.get('PATH_INFO', '/'),
         {'Content-Length': environ.get('CONTENT_LENGTH', '0'),
-         'Content-Type': environ.get('CONTENT_TYPE', '')},
+         'Content-Type': environ.get('CONTENT_TYPE', ''),
+         'Authorization': environ.get('HTTP_AUTHORIZATION', '')},
         environ.get('wsgi.input', io.BytesIO()),
     )
     start_response(f'{status} {HTTPStatus(status).phrase}', headers)

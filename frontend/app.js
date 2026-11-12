@@ -1,9 +1,14 @@
 'use strict';
 const $ = id => document.getElementById(id);
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
-const titles = {assistant:'Intelligence assistant', explorer:'Data explorer', architecture:'Architecture'};
+const titles = {assistant:'Intelligence assistant', explorer:'Data explorer', architecture:'Architecture', admin:'Admin'};
 let records = [], latest = null, malaysiaOutline = null;
 let editingRecord = null, editDraft = null, savingRecord = false, dataVersion = 0, importingCsv = false, datasetReady = false;
+const ADMIN_STORAGE_KEY = 'spacelab.adminSession';
+let adminToken = '', isAdmin = false, permissionsReady = false;
+let permissions = {excerpt_only:true, allow_record_updates:false};
+try { adminToken = localStorage.getItem(ADMIN_STORAGE_KEY) || ''; } catch (error) { /* Storage may be unavailable. */ }
+const canUpdateRecords = () => permissionsReady && (isAdmin || permissions.allow_record_updates);
 const malaysianStates = ['Johor', 'Kedah', 'Kelantan', 'Melaka', 'Negeri Sembilan', 'Pahang', 'Penang', 'Perak', 'Perlis', 'Sabah', 'Sarawak', 'Selangor', 'Terengganu', 'Kuala Lumpur', 'Putrajaya', 'Labuan'];
 function showView(view) {
   if (!titles[view]) view = 'assistant';
@@ -15,6 +20,7 @@ function showView(view) {
   $('breadcrumb').textContent = titles[view];
   history.replaceState(null, '', `#${view}`);
   window.scrollTo({top:0, behavior:'instant'});
+  if (view === 'admin' && !isAdmin) $('admin-password').focus();
 }
 document.querySelectorAll('[data-view], [data-go]').forEach(button => button.addEventListener('click', () => showView(button.dataset.view || button.dataset.go)));
 document.querySelectorAll('[data-architecture-target]').forEach(button => button.addEventListener('click', () => {
@@ -33,7 +39,9 @@ function setQuery(question) {showView('assistant'); $('question').value = questi
 document.querySelectorAll('[data-query]').forEach(button => button.addEventListener('click', () => setQuery(button.dataset.query)));
 
 async function api(path, options) {
-  const response = await fetch(path, options);
+  const headers = {...options?.headers};
+  if (adminToken) headers.Authorization = `Bearer ${adminToken}`;
+  const response = await fetch(path, {...options, headers});
   const result = await response.json();
   if (!response.ok) throw new Error(result.error || `Request failed (${response.status})`);
   return result;
@@ -50,7 +58,7 @@ function sourceCard(record, inAnswer = false) {
     <dt>Cloud cover</dt><dd>${r.cloud_cover_pct}%${record.theme === 'flood' ? ' (not used for radar; placeholder)' : ''}</dd>
     <dt>Quality</dt><dd>${r.quality}</dd>${inAnswer ? `<dt>Selection</dt><dd>${record.retrieval_score === undefined ? 'Dataset query' : `BM25 score: ${r.retrieval_score} (match strength, not confidence)`}</dd>` : ''}</dl>
     <p><strong>Limit:</strong> ${r.limitations}</p><p class="muted">Synthetic · ${r.provenance}</p>
-    ${inAnswer ? '' : `<button type="button" class="text-button" id="edit-${r.id}" data-edit-record="${r.id}" ${editingRecord ? 'disabled' : ''}>Edit record</button>`}
+    ${inAnswer || !canUpdateRecords() ? '' : `<button type="button" class="text-button" id="edit-${r.id}" data-edit-record="${r.id}" ${editingRecord ? 'disabled' : ''}>Edit record</button>`}
     </details>`;
 }
 
@@ -171,7 +179,7 @@ function renderResponse(result) {
 }
 $('question-form').addEventListener('submit', async event => {
   event.preventDefault();
-  if ($('ask-button').disabled) return;
+  if ($('ask-button').disabled || !permissionsReady) return;
   const question = $('question').value.trim();
   if (question.length < 3) {$('question').setCustomValidity('Please enter at least 3 characters.'); $('question').reportValidity(); return;}
   $('ask-button').disabled = true;
@@ -270,8 +278,8 @@ function renderExplorer() {
 function setEditorControls() {
   $('data-theme').disabled = Boolean(editingRecord) || importingCsv;
   $('data-search').disabled = Boolean(editingRecord) || importingCsv;
-  $('csv-file').disabled = Boolean(editingRecord) || importingCsv || !datasetReady;
-  $('csv-import-button').disabled = Boolean(editingRecord) || importingCsv || !datasetReady;
+  $('csv-file').disabled = Boolean(editingRecord) || importingCsv || !datasetReady || !canUpdateRecords();
+  $('csv-import-button').disabled = Boolean(editingRecord) || importingCsv || !datasetReady || !canUpdateRecords();
   $('records-list').querySelectorAll('[data-edit-record]').forEach(button => {button.disabled = Boolean(editingRecord) || importingCsv;});
 }
 
@@ -298,7 +306,7 @@ $('records-list').addEventListener('click', async event => {
     $(`edit-${id}`)?.focus();
     return;
   }
-  if (editingRecord) return;
+  if (editingRecord || !canUpdateRecords()) return;
   editingRecord = {...records.find(record => record.id === button.dataset.editRecord)};
   editDraft = {...editingRecord};
   $('edit-status').textContent = '';
@@ -310,7 +318,7 @@ $('records-list').addEventListener('submit', async event => {
   const form = event.target.closest('[data-record-editor]');
   if (!form) return;
   event.preventDefault();
-  if (savingRecord || !form.reportValidity()) return;
+  if (savingRecord || !canUpdateRecords() || !form.reportValidity()) return;
   const original = editingRecord;
   const changes = Object.fromEntries(new FormData(form));
   for (const key of ['latitude', 'longitude', 'value', 'cloud_cover_pct']) {
@@ -344,7 +352,7 @@ $('records-list').addEventListener('submit', async event => {
 });
 $('csv-import-form').addEventListener('submit', async event => {
   event.preventDefault();
-  if (editingRecord || importingCsv || !datasetReady) return;
+  if (editingRecord || importingCsv || !datasetReady || !canUpdateRecords()) return;
   const file = $('csv-file').files[0];
   if (!file) return;
   const status = $('csv-import-status');
@@ -390,6 +398,7 @@ async function init() {
   showView(location.hash.slice(1) || 'assistant');
   resizeQuestion();
   try {
+    await refreshPermissions();
     records = await api('/api/records');
     document.querySelectorAll('.record-count').forEach(el => {el.textContent=records.length;});
     document.querySelectorAll('.location-count').forEach(el => {el.textContent=new Set(records.map(r => r.location)).size;});
@@ -409,4 +418,89 @@ async function init() {
     $('answer-panel').innerHTML='<div class="response-primary"><p class="error">Could not load the dataset. Start the Python server and reload this page.</p></div>';
   }
 }
+function applyPermissions() {
+  const locked = !permissionsReady || permissions.excerpt_only;
+  $('engine').querySelector('[value="qwen"]').disabled = locked;
+  $('engine').disabled = locked;
+  $('web-search').disabled = locked;
+  if (locked) { $('engine').value = 'offline'; $('web-search').checked = false; }
+  updateWebSearchHint();
+  $('admin-login-form').hidden = isAdmin;
+  $('admin-controls').hidden = !isAdmin;
+  $('excerpt-only').checked = permissions.excerpt_only;
+  $('allow-record-updates').checked = permissions.allow_record_updates;
+  document.querySelector('.csv-import-panel').hidden = !canUpdateRecords();
+  if (datasetReady) {
+    renderExplorer();
+    if (editingRecord && !canUpdateRecords()) {
+      $('edit-status').textContent = 'Record updates are now disabled. Your draft cannot be saved.';
+      $('records-list').querySelectorAll('[data-record-editor] input, [data-record-editor] select, [data-record-editor] textarea, [data-record-editor] [type="submit"]').forEach(control => {control.disabled = true;});
+    }
+  }
+  setEditorControls();
+}
+function clearAdminSession() {
+  adminToken = '';
+  isAdmin = false;
+  try { localStorage.removeItem(ADMIN_STORAGE_KEY); } catch (error) { /* Storage may be unavailable. */ }
+}
+async function refreshPermissions() {
+  const requestedToken = adminToken;
+  const [settings, session] = await Promise.all([api('/api/settings'), api('/api/admin/session')]);
+  if (requestedToken !== adminToken) return;
+  const changed = !permissionsReady || isAdmin !== session.admin || JSON.stringify(permissions) !== JSON.stringify(settings);
+  permissions = settings;
+  permissionsReady = true;
+  isAdmin = session.admin;
+  if (!isAdmin) clearAdminSession();
+  if (changed) applyPermissions();
+}
+$('admin-login-form').addEventListener('submit', async event => {
+  event.preventDefault();
+  $('admin-login-button').disabled = true;
+  try {
+    const result = await api('/api/admin/login', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({password:$('admin-password').value})});
+    adminToken = result.token;
+    let saved = true;
+    try { localStorage.setItem(ADMIN_STORAGE_KEY, adminToken); } catch (error) { saved = false; }
+    await refreshPermissions();
+    $('admin-status').textContent = saved ? 'Signed in as admin in this browser.' : 'Signed in for this page. Browser storage is unavailable.';
+  } catch (error) { $('admin-status').textContent = error.message; }
+  finally { $('admin-password').value = ''; $('admin-login-button').disabled = false; }
+});
+$('admin-settings-form').addEventListener('submit', async event => {
+  event.preventDefault();
+  const button = event.target.querySelector('button');
+  button.disabled = true;
+  try {
+    permissions = await api('/api/admin/settings', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({excerpt_only:$('excerpt-only').checked, allow_record_updates:$('allow-record-updates').checked})});
+    applyPermissions();
+    $('admin-status').textContent = 'Settings saved for all users.';
+  } catch (error) { $('admin-status').textContent = error.message; }
+  finally { button.disabled = false; }
+});
+$('admin-signout').addEventListener('click', async () => {
+  const token = adminToken;
+  clearAdminSession();
+  applyPermissions();
+  try {
+    await api('/api/admin/logout', {method:'POST', headers:{'Content-Type':'application/json', Authorization:`Bearer ${token}`}, body:'{}'});
+    $('admin-status').textContent = 'Signed out. Admin access was removed from this browser.';
+  } catch (error) { $('admin-status').textContent = 'Browser sign-in cleared. Could not revoke the server session; it will expire automatically.'; }
+});
+window.addEventListener('storage', event => {
+  if (event.key === ADMIN_STORAGE_KEY || event.key === null) {
+    try { adminToken = localStorage.getItem(ADMIN_STORAGE_KEY) || ''; } catch (error) { adminToken = ''; }
+    isAdmin = false;
+    applyPermissions();
+    refreshPermissions().catch(() => {});
+  }
+});
+// Enforce on the server immediately; refresh other browsers' controls regularly.
+setInterval(() => {
+  if (!document.hidden && !savingRecord && !importingCsv && document.activeElement?.closest('#admin-settings-form') === null) {
+    refreshPermissions().catch(() => {});
+  }
+}, 15000);
+applyPermissions();
 init();

@@ -59,7 +59,7 @@
       <button class="nav-item active" data-view="assistant"><span>◈</span> Intelligence assistant <small>01</small></button>
       <button class="nav-item" data-view="explorer"><span>▦</span> Data explorer <small>02</small></button>
       <button class="nav-item" data-view="architecture"><span>⌘</span> Architecture <small>03</small></button>
-      <button class="nav-item" data-view="admin"><span>⚙</span> Admin <small>04</small></button>
+      <button class="nav-item" data-view="admin" hidden><span>⚙</span> Admin <small>04</small></button>
     </nav>
     <div class="sidebar-bottom"><div class="orbit-mini" aria-hidden="true">◎</div><strong>From orbit<br>to insight.</strong><p>Space-tech data<br>Retrieval-augmented generation</p><span class="tag">LLM + RAG</span></div>
   </aside>
@@ -69,7 +69,7 @@
       <section id="view-admin" class="view" hidden>
         <div class="page-title"><span class="eyebrow">WORKSPACE CONTROLS</span><h1>Admin</h1><p>Manage answer modes and record updates for everyone using this app.</p></div>
         <section class="card admin-card">
-          <form id="admin-login-form">
+          <form id="admin-login-form" hidden>
             <h2>Sign in as admin</h2>
             <label for="admin-password">Admin password<input id="admin-password" type="password" autocomplete="current-password" maxlength="1000" required></label>
             <button class="primary" id="admin-login-button" type="submit">Sign in</button>

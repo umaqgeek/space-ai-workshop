@@ -75,6 +75,7 @@ let historyOffset = null, historyLoading = false;
 let editingRecord = null, editDraft = null, savingRecord = false, dataVersion = 0, importingCsv = false, datasetReady = false;
 const ADMIN_STORAGE_KEY = 'spacelab.adminSession';
 let adminToken = '', isAdmin = false, permissionsReady = false;
+let adminEntryRevealed = false;
 let permissions = {excerpt_only:true, allow_record_updates:false};
 try { adminToken = localStorage.getItem(ADMIN_STORAGE_KEY) || ''; } catch (error) { /* Storage may be unavailable. */ }
 const canUpdateRecords = () => permissionsReady && (isAdmin || permissions.allow_record_updates);
@@ -82,6 +83,7 @@ const malaysianStates = ['Johor', 'Kedah', 'Kelantan', 'Melaka', 'Negeri Sembila
 function showView(view) {
   hideNote();
   if (!titles[view]) view = 'assistant';
+  if (view === 'admin' && !isAdmin && !adminEntryRevealed) view = 'assistant';
   document.querySelectorAll('.view').forEach(section => {section.hidden = section.id !== `view-${view}`;});
   document.querySelectorAll('[data-view]').forEach(button => {
     button.classList.toggle('active', button.dataset.view === view);
@@ -93,6 +95,14 @@ function showView(view) {
   if (view === 'admin' && !isAdmin) $('admin-password').focus();
 }
 document.querySelectorAll('[data-view], [data-go]').forEach(button => button.addEventListener('click', () => showView(button.dataset.view || button.dataset.go)));
+document.addEventListener('keydown', event => {
+  if (event.repeat || event.isComposing || event.altKey || !event.shiftKey || !(event.metaKey || event.ctrlKey)) return;
+  if (event.code !== 'KeyU' && event.key.toLowerCase() !== 'u') return;
+  event.preventDefault();
+  adminEntryRevealed = true;
+  applyPermissions();
+  showView('admin');
+});
 document.querySelectorAll('[data-architecture-target]').forEach(button => button.addEventListener('click', () => {
   const section = $(button.dataset.architectureTarget);
   section.open = true;
@@ -549,10 +559,12 @@ function download(name, data) {
   setTimeout(() => URL.revokeObjectURL(url),1000);
 }
 async function init() {
-  showView(location.hash.slice(1) || 'assistant');
+  const initialView = location.hash.slice(1) || 'assistant';
+  showView(initialView);
   resizeQuestion();
   try {
     await refreshPermissions();
+    if (initialView === 'admin' && isAdmin) showView('admin');
     records = await api('/api/records');
     document.querySelectorAll('.record-count').forEach(el => {el.textContent=records.length;});
     document.querySelectorAll('.location-count').forEach(el => {el.textContent=new Set(records.map(r => r.location)).size;});
@@ -579,8 +591,13 @@ function applyPermissions() {
   $('web-search').disabled = locked;
   if (locked) { $('engine').value = 'offline'; $('web-search').checked = false; }
   updateWebSearchHint();
-  $('admin-login-form').hidden = isAdmin;
+  document.querySelector('[data-view="admin"]').hidden = !isAdmin && !adminEntryRevealed;
+  $('admin-login-form').hidden = isAdmin || !adminEntryRevealed;
   $('admin-controls').hidden = !isAdmin;
+  if (!isAdmin && !adminEntryRevealed && !$('view-admin').hidden) {
+    $('admin-password').value = '';
+    showView('assistant');
+  }
   $('excerpt-only').checked = permissions.excerpt_only;
   $('allow-record-updates').checked = permissions.allow_record_updates;
   document.querySelector('.csv-import-panel').hidden = !canUpdateRecords();
@@ -605,6 +622,7 @@ async function refreshPermissions() {
   const changed = !permissionsReady || isAdmin !== session.admin || JSON.stringify(permissions) !== JSON.stringify(settings);
   permissions = settings;
   permissionsReady = true;
+  if (isAdmin && !session.admin) adminEntryRevealed = false;
   isAdmin = session.admin;
   if (!isAdmin) clearAdminSession();
   if (changed) applyPermissions();
@@ -635,6 +653,7 @@ $('admin-settings-form').addEventListener('submit', async event => {
 });
 $('admin-signout').addEventListener('click', async () => {
   const token = adminToken;
+  adminEntryRevealed = false;
   clearAdminSession();
   applyPermissions();
   try {
@@ -646,6 +665,7 @@ window.addEventListener('storage', event => {
   if (event.key === ADMIN_STORAGE_KEY || event.key === null) {
     try { adminToken = localStorage.getItem(ADMIN_STORAGE_KEY) || ''; } catch (error) { adminToken = ''; }
     isAdmin = false;
+    adminEntryRevealed = false;
     applyPermissions();
     refreshPermissions().catch(() => {});
   }

@@ -79,7 +79,12 @@ dataset exports do not contain chat history.
 
 ## 3. Admin access and GitHub deployment secrets
 
-The Admin button opens a password form. The backend verifies the password
+Admin navigation and its password form are hidden for signed-out users. Press
+**Cmd+Shift+U** on macOS or **Ctrl+Shift+U** on Windows/Linux to reveal the Admin
+entry and open the password form. This reveal lasts only for the current page;
+refreshing or signing out hides it again. Authenticated admins see the Admin
+entry normally. Opening `#admin` does not reveal the form to signed-out users.
+The shortcut reveals the interface; the backend still verifies the password
 against its `ADMIN_PASSWORD` environment variable. No password is included in
 the frontend or saved in browser storage. A successful login stores an opaque
 session token in `localStorage` under `spacelab.adminSession`. Sessions expire

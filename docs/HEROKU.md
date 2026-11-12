@@ -69,6 +69,14 @@ by ID in one SQLite transaction. Importing a CSV does not change the deployed
 sample files. Backing up CSV/JSON exports captures the merged dataset; the
 SQLite file retains the saved overrides and additions.
 
+Shared conversation history also uses this SQLite file. Each completed answer
+is saved with its question and source snapshots before being returned. Refreshing
+or choosing New chat starts a fresh session; everyone can browse previous
+sessions through Shared history. History has the same filesystem persistence
+limits as record edits: use persistent storage for retention across dyno
+replacement and for multiple dynos. Back up the SQLite file to retain transcripts;
+dataset exports do not contain chat history.
+
 ## 3. Admin access and GitHub deployment secrets
 
 The Admin button opens a password form. The backend verifies the password

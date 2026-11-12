@@ -95,7 +95,19 @@
         </div>
         <div class="metrics"><div><span class="metric-icon">▦</span><strong class="record-count">103</strong><span>curated observations</span></div><div><span class="metric-icon">⌖</span><strong class="location-count">28</strong><span>Malaysian locations</span></div><div><span class="metric-icon">◈</span><strong>04</strong><span>space-tech applications</span></div><div><span class="synthetic-dot"></span><span>100% synthetic sample data</span></div></div>
         <div class="workbench">
-          <div class="assistant-column"><section class="card ask-card"><div class="card-heading"><div><span class="eyebrow">YOUR MISSION CONTROL</span><h2>What would you like to explore?</h2></div><span class="tag pale">SOURCE-BACKED</span></div>
+          <div class="assistant-column">
+          <section class="card chat-history" aria-label="Conversation history">
+            <div class="chat-toolbar"><h2>Conversations</h2><button id="new-chat" type="button" class="primary">New chat +</button></div>
+            <p class="muted">Chats are saved automatically and visible to everyone. Refreshing starts a new session.</p>
+            <details id="history-panel"><summary>Shared history</summary>
+              <button id="refresh-history" type="button" class="text-button">Refresh history ↻</button>
+              <p id="history-status" role="status" aria-live="polite"></p>
+              <div id="history-list"></div>
+              <button id="more-history" type="button" class="text-button" hidden>Load more</button>
+            </details>
+            <p id="chat-status" class="muted" role="status">New session · ask a question to begin.</p>
+          </section>
+          <section class="card ask-card"><div class="card-heading"><div><span class="eyebrow">YOUR MISSION CONTROL</span><h2>What would you like to explore?</h2></div><span class="tag pale">SOURCE-BACKED</span></div>
             <form id="question-form">
               <div class="settings"><label>Answer engine<select id="engine"><option value="qwen" selected>AI Ollama</option><option value="offline">Offline · retrieved excerpts</option></select></label><label>Topic<select id="topic"><option value="all">All applications</option><option value="flood">Flood monitoring</option><option value="vegetation">Vegetation</option><option value="land-use">Land-use change</option><option value="coastal">Coastal observation</option></select></label><label>Answer style<select id="style"><option value="concise">Concise</option><option value="briefing">Field briefing</option></select></label></div>
               <div class="web-search-control"><label class="web-search-toggle" for="web-search"><input id="web-search" type="checkbox" role="switch" aria-describedby="web-search-hint"><span class="switch-track" aria-hidden="true"></span><span>Web search</span></label><span id="web-search-hint">Off · dataset only</span></div>

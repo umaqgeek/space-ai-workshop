@@ -277,6 +277,31 @@ live-data abstention, model failure/citation handling, data consistency and HTTP
 input validation. Node is needed only for the JavaScript syntax check. Model
 responses are mocked; the automated suite does not require live Qwen inference.
 
+## Shared conversation history
+
+The assistant saves each completed question and answer automatically, including
+the original dataset/web references, engine settings and timestamps. A session
+contains many question/answer exchanges. **Shared history** lists saved sessions
+for everyone; select one to read its transcript and download individual responses.
+Saved transcripts are read only. **New chat** starts a fresh session, as does
+refreshing or reopening the page. Empty sessions are never saved. Saving happens
+on the server before an answer is returned, so a refresh needs no browser unload
+request. An in-flight question may not complete if its request is interrupted.
+
+History is stored in the same SQLite file as record edits, under
+`SPACELAB_DATA_DIR` (default `data/database/record-edits.sqlite3`). It survives
+local server restarts. Back up this file to retain chat transcripts; dataset
+CSV/JSON exports do not include history. Heroku's temporary filesystem does not
+preserve history across dyno replacement or share it across dynos; hosted durable
+history requires persistent storage. History records conversations for browsing;
+previous messages are not supplied to the model as conversational memory.
+
+API: `POST /api/ask` returns a `session_id`; send it with subsequent questions
+to group them in that session. Omit it to start another session.
+`GET /api/history?offset=0` returns up to 30 session summaries and a `next_offset`;
+`GET /api/history/<session_id>` returns the complete saved transcript. No login
+is needed to browse this shared workshop history.
+
 ## Limits
 
 Citation checks establish that source IDs exist, not that a claim follows from

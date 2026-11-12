@@ -74,6 +74,7 @@
 @media(max-width:950px){.architecture-notes{grid-template-columns:1fr;gap:17px}}
 @media(max-width:680px){.architecture-overview{grid-template-columns:1fr;gap:16px}.diagram-heading{align-items:flex-start;flex-direction:column;gap:12px}.diagram-heading h2{font-size:22px}.diagram-scroll img{min-width:850px}}
 
+.chat-history{margin-bottom:19px}.chat-toolbar{display:flex;align-items:center;justify-content:space-between;gap:16px}.chat-toolbar h2{margin:0}.chat-history summary{cursor:pointer;font-weight:600}.chat-history #refresh-history{margin-top:12px}#history-list{display:grid;gap:8px;max-height:320px;overflow:auto;margin:12px 0}.history-entry{display:grid;gap:4px;width:100%;text-align:left;background:var(--surface-soft);border:1px solid var(--line);border-radius:8px;padding:12px;overflow-wrap:anywhere}.history-entry:hover{border-color:var(--focus)}.history-entry span{font-size:11px;color:var(--muted)}.chat-exchange+.chat-exchange{border-top:1px solid var(--line);margin-top:28px;padding-top:28px}.chat-exchange{overflow-wrap:anywhere}
 /* Compact chat composer with retrieval settings above the question. */
 .ask-card .settings{margin:0 0 16px}
 .question-composer{border:1px solid var(--line);border-radius:14px;background:var(--surface-soft);overflow:hidden}

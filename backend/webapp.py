@@ -7,10 +7,11 @@ import re
 import sqlite3
 from http import HTTPStatus
 from pathlib import Path
-from urllib.parse import urlsplit
+from urllib.parse import parse_qs, urlsplit
 
 from rag_server.rag import ask, SYSTEM_PROMPT
 from backend import admin
+from data import chat_store
 from data.record_store import get_records, update_record, export_records, import_csv, EditConflict, RecordNotFound
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -41,6 +42,20 @@ class Request:
             return self.respond({'admin': admin.is_admin(self.headers.get('Authorization', ''))})
         if path == '/api/health':
             return self.respond({'status': 'ok', 'records': len(get_records()), 'default_mode': 'offline', 'qwen': 'optional; connection checked when answering'})
+        if path == '/api/history' or path.startswith('/api/history/'):
+            try:
+                if path == '/api/history':
+                    offset = int(parse_qs(urlsplit(self.path).query).get('offset', ['0'])[0])
+                    if not 0 <= offset <= 1_000_000:
+                        raise ValueError('Invalid history offset.')
+                    return self.respond(chat_store.list_sessions(offset))
+                chat_id = chat_store.session_id(path.removeprefix('/api/history/'))
+                session = chat_store.get_session(chat_id)
+                return self.respond(session if session else {'error': 'History session not found.'}, 200 if session else 404)
+            except ValueError:
+                return self.respond({'error': 'Invalid history session or offset.'}, 400)
+            except (OSError, sqlite3.Error):
+                return self.respond({'error': 'Could not load conversation history. Try again.'}, 503)
         if path == '/api/records':
             return self.respond(get_records())
         if path == '/api/prompt':
@@ -124,8 +139,14 @@ class Request:
                 raise ValueError('Web search must be true or false.')
             if permissions['excerpt_only'] and (mode != 'offline' or web_search):
                 return self.respond({'error': 'Only excerpt mode is currently allowed by the admin.'}, 403)
+            chat_id = chat_store.session_id(data.get('session_id'))
             result = ask(question.strip(), get_records(), mode, theme, style, web_search=web_search)
             result['question'] = question.strip()
+            result['session_id'] = chat_id
+            try:
+                chat_store.save_exchange(chat_id, result, {'mode': mode, 'theme': theme, 'style': style, 'web_search': web_search})
+            except (OSError, sqlite3.Error):
+                return self.respond({'error': 'Could not save this conversation. Try submitting your question again.'}, 503)
             return self.respond(result)
         except EditConflict as exc:
             return self.respond({'error': str(exc)}, 409)
@@ -152,7 +173,7 @@ def dispatch(method, path, headers, body):
 
 def application(environ, start_response):
     status, headers, body = dispatch(
-        environ['REQUEST_METHOD'], environ.get('PATH_INFO', '/'),
+        environ['REQUEST_METHOD'], environ.get('PATH_INFO', '/') + ('?' + environ['QUERY_STRING'] if environ.get('QUERY_STRING') else ''),
         {'Content-Length': environ.get('CONTENT_LENGTH', '0'),
          'Content-Type': environ.get('CONTENT_TYPE', ''),
          'Authorization': environ.get('HTTP_AUTHORIZATION', '')},

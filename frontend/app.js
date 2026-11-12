@@ -3,6 +3,9 @@ const $ = id => document.getElementById(id);
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
 const titles = {assistant:'Intelligence assistant', explorer:'Data explorer', architecture:'Architecture', admin:'Admin'};
 let records = [], latest = null, malaysiaOutline = null;
+// Deliberately kept in memory: every page load starts a fresh session.
+let chatSessionId = null, conversations = [], viewingHistory = false, chatBusy = false;
+let historyOffset = null, historyLoading = false;
 let editingRecord = null, editDraft = null, savingRecord = false, dataVersion = 0, importingCsv = false, datasetReady = false;
 const ADMIN_STORAGE_KEY = 'spacelab.adminSession';
 let adminToken = '', isAdmin = false, permissionsReady = false;
@@ -35,7 +38,7 @@ function resizeQuestion() {
   field.style.height = `${Math.min(field.scrollHeight, 140)}px`;
   field.style.overflowY = field.scrollHeight > 140 ? 'auto' : 'hidden';
 }
-function setQuery(question) {showView('assistant'); $('question').value = question; $('question').setCustomValidity(''); resizeQuestion(); $('question').focus();}
+function setQuery(question) {if (viewingHistory && !chatBusy) newChat(); showView('assistant'); $('question').value = question; $('question').setCustomValidity(''); resizeQuestion(); $('question').focus();}
 document.querySelectorAll('[data-query]').forEach(button => button.addEventListener('click', () => setQuery(button.dataset.query)));
 
 async function api(path, options) {
@@ -158,8 +161,8 @@ function renderResponse(result) {
   const referenceCount = result.sources.length + webSources.length;
   const computed = result.mode === 'data';
   const title = result.status === 'insufficient' ? 'Insufficient evidence' : generated ? 'AI response' : computed ? 'Dataset results' : 'Retrieved excerpts';
-  return `<article class="response-primary" aria-labelledby="response-title">
-      <div class="answer-header"><div><span class="eyebrow">YOUR ANSWER</span><h2 id="response-title">${title}</h2></div><span class="tag response-mode ${generated ? 'generated' : ''}">${generated ? 'AI GENERATED' : computed ? 'DATASET RESULTS' : 'EXCERPT MODE'}</span></div>
+  return `<article class="response-primary" aria-label="${title}">
+      <div class="answer-header"><div><span class="eyebrow">YOUR ANSWER</span><h2>${title}</h2></div><span class="tag response-mode ${generated ? 'generated' : ''}">${generated ? 'AI GENERATED' : computed ? 'DATASET RESULTS' : 'EXCERPT MODE'}</span></div>
       <p class="response-question">${escapeHtml(result.question)}</p>
       <div class="answer-text">${formatAnswer(responseContent(result))}</div>
       <div class="response-context"><span class="tag">${webSources.length ? result.sources.length ? 'DATASET + WEB' : 'WEB REFERENCES' : 'SYNTHETIC DATA'}</span><span>${referenceCount} reference${referenceCount === 1 ? '' : 's'} retrieved</span>${webEnabled ? `<span class="web-search-status">${webSources.length ? 'Web search completed' : 'Web search unavailable or no results'}</span>` : ''}${result.notice ? '<span class="fallback-label">See clarification for details</span>' : ''}</div>
@@ -174,34 +177,104 @@ function renderResponse(result) {
         ${result.sources.length ? `<h3 class="reference-section-title">Dataset records · synthetic</h3>${result.sources.map(r => sourceCard(r, true)).join('')}` : '<p>No matching dataset records were retrieved.</p>'}
         ${webSources.length ? `<h3 class="reference-section-title">Web references · external search excerpts</h3>${webSources.map(webSourceCard).join('')}` : ''}
         </div></details>
-      <div class="answer-actions"><button id="export-answer" class="text-button">Download response and references ↓</button></div>
+      <div class="answer-actions"><button type="button" data-export-answer class="text-button">Download response and references ↓</button></div>
     </div>`;
 }
+const emptyChat = $('answer-panel').innerHTML;
+function renderConversations() {
+  $('answer-panel').innerHTML = conversations.length ? conversations.map((result, index) =>
+    `<section class="chat-exchange" data-exchange="${index}" aria-label="Conversation ${index + 1}">${renderResponse(result)}</section>`).join('') : emptyChat;
+}
+function setChatBusy(busy) {
+  chatBusy = busy;
+  $('ask-button').disabled = busy;
+  $('new-chat').disabled = busy;
+  $('history-list').inert = busy;
+}
+function newChat() {
+  if (chatBusy) return;
+  chatSessionId = null;
+  conversations = [];
+  latest = null;
+  viewingHistory = false;
+  $('question-form').hidden = false;
+  document.querySelector('.suggestions').hidden = false;
+  $('chat-status').textContent = 'New session · ask a question to begin.';
+  $('question').value = '';
+  resizeQuestion();
+  renderConversations();
+  $('question').focus();
+}
+async function loadHistory(append = false) {
+  if (historyLoading) return;
+  historyLoading = true;
+  $('history-status').textContent = 'Loading history…';
+  try {
+    const page = await api(`/api/history?offset=${append ? historyOffset : 0}`);
+    const html = page.sessions.map(session => `<button type="button" class="history-entry" data-history-id="${escapeHtml(session.id)}">
+      <strong>${escapeHtml(session.title)}</strong><span>${escapeHtml(new Date(session.updated_at).toLocaleString())} · ${session.conversation_count} exchange${session.conversation_count === 1 ? '' : 's'}</span></button>`).join('');
+    if (append) $('history-list').insertAdjacentHTML('beforeend', html);
+    else $('history-list').innerHTML = html;
+    historyOffset = page.next_offset;
+    $('more-history').hidden = historyOffset === null;
+    $('history-status').textContent = $('history-list').children.length ? 'Select a session to view its saved questions, answers and references.' : 'No saved conversations yet.';
+  } catch (error) {
+    $('history-status').textContent = error.message;
+  } finally { historyLoading = false; }
+}
+$('new-chat').addEventListener('click', newChat);
+$('refresh-history').addEventListener('click', () => loadHistory());
+$('more-history').addEventListener('click', () => loadHistory(true));
+$('history-panel').addEventListener('toggle', () => { if ($('history-panel').open) loadHistory(); });
+$('history-list').addEventListener('click', async event => {
+  const button = event.target.closest('[data-history-id]');
+  if (!button || chatBusy) return;
+  setChatBusy(true);
+  try {
+    const session = await api(`/api/history/${button.dataset.historyId}`);
+    conversations = session.conversations;
+    latest = conversations.at(-1) || null;
+    viewingHistory = true;
+    chatSessionId = null;
+    $('question-form').hidden = true;
+    document.querySelector('.suggestions').hidden = true;
+    $('chat-status').textContent = `Saved session: ${session.title} · Read only. Choose New chat to begin another session. Answers reflect the evidence saved at the time.`;
+    renderConversations();
+  } catch (error) { $('history-status').textContent = error.message; }
+  finally { setChatBusy(false); }
+});
+$('answer-panel').addEventListener('click', event => {
+  const button = event.target.closest('[data-export-answer]');
+  if (!button) return;
+  const result = conversations[Number(button.closest('[data-exchange]').dataset.exchange)];
+  download('spacelab-response.json', {...result, synthetic:!(result.web_sources?.length), dataset_synthetic:true, exported_at:new Date().toISOString()});
+});
 $('question-form').addEventListener('submit', async event => {
   event.preventDefault();
-  if ($('ask-button').disabled || !permissionsReady) return;
+  if (chatBusy || viewingHistory || !permissionsReady) return;
   const question = $('question').value.trim();
   if (question.length < 3) {$('question').setCustomValidity('Please enter at least 3 characters.'); $('question').reportValidity(); return;}
-  $('ask-button').disabled = true;
+  setChatBusy(true);
   const useWeb = $('web-search').checked;
   $('ask-button').textContent = useWeb ? 'Searching…' : 'Retrieving…';
   $('answer-panel').setAttribute('aria-busy','true');
-  $('answer-panel').innerHTML = `<div class="loading">${useWeb ? 'Searching the web and retrieving dataset evidence…' : 'Retrieving source records and preparing your answer…'}</div>`;
-  latest = null;
+  renderConversations();
+  $('answer-panel').insertAdjacentHTML('beforeend', `<div class="loading">${useWeb ? 'Searching the web and retrieving dataset evidence…' : 'Retrieving source records and preparing your answer…'}</div>`);
   const requestVersion = dataVersion;
   try {
-    latest = await api('/api/ask', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({question, mode:$('engine').value, theme:$('topic').value, style:$('style').value, web_search:useWeb})});
-    if (requestVersion !== dataVersion) {
-      latest = null;
-      $('answer-panel').innerHTML = '<p class="muted">The dataset changed. Submit your question again for an updated answer.</p>';
-      return;
-    }
-    $('answer-panel').innerHTML = renderResponse(latest);
-    $('export-answer').addEventListener('click', () => download('spacelab-response.json', {...latest, synthetic:!(latest.web_sources?.length), dataset_synthetic:true, exported_at:new Date().toISOString()}));
+    latest = await api('/api/ask', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({question, mode:$('engine').value, theme:$('topic').value, style:$('style').value, web_search:useWeb, ...(chatSessionId ? {session_id:chatSessionId} : {})})});
+    chatSessionId = latest.session_id;
+    conversations.push(latest);
+    renderConversations();
+    $('chat-status').textContent = `Current session · ${conversations.length} saved exchange${conversations.length === 1 ? '' : 's'}.${requestVersion !== dataVersion ? ' The dataset changed during this answer; ask again for current values.' : ''}`;
+    $('question').value = '';
+    resizeQuestion();
+    if ($('history-panel').open) loadHistory();
   } catch (error) {
-    $('answer-panel').innerHTML = `<div class="response-primary"><h2>Could not retrieve an answer</h2><p class="error">${escapeHtml(error.message)}</p><p class="muted">Check that the Python server is running, then submit your question again.</p></div>`;
+    renderConversations();
+    $('answer-panel').insertAdjacentHTML('beforeend', `<div class="response-primary"><h2>Could not complete this conversation</h2><p class="error">${escapeHtml(error.message)}</p><p class="muted">Submit your question again. Previously saved exchanges remain in history.</p></div>`);
   } finally {
-    $('ask-button').disabled = false; $('ask-button').innerHTML = 'Find insights <span>↗</span>';
+    setChatBusy(false); $('ask-button').innerHTML = 'Find insights <span>↗</span>';
     $('answer-panel').removeAttribute('aria-busy');
     if (!$('view-assistant').hidden) {
       $('answer-panel').focus({preventScroll:true});
@@ -334,8 +407,7 @@ $('records-list').addEventListener('submit', async event => {
     editingRecord = null;
     editDraft = null;
     dataVersion += 1;
-    latest = null;
-    $('answer-panel').innerHTML = '<p class="muted">The dataset was updated. Submit your question again to use the saved values.</p>';
+    $('chat-status').textContent = 'The dataset was updated. Saved answers retain their original evidence; ask a new question to use the updated values.';
     $('edit-status').textContent = `${original.id} saved. Answers, rankings and downloads now use the updated values.`;
     document.querySelectorAll('.location-count').forEach(el => {el.textContent=new Set(records.map(r => r.location)).size;});
     renderExplorer();
@@ -370,8 +442,7 @@ $('csv-import-form').addEventListener('submit', async event => {
     const result = await api('/api/records/import', {method:'POST', headers:{'Content-Type':'text/csv; charset=utf-8'}, body:await file.text()});
     records = result.records;
     dataVersion += 1;
-    latest = null;
-    $('answer-panel').innerHTML = '<p class="muted">The dataset was updated. Submit your question again to use the saved values.</p>';
+    $('chat-status').textContent = 'The dataset was updated. Saved answers retain their original evidence; ask a new question to use the updated values.';
     document.querySelectorAll('.record-count').forEach(el => {el.textContent = records.length;});
     document.querySelectorAll('.location-count').forEach(el => {el.textContent = new Set(records.map(r => r.location)).size;});
     status.textContent = `CSV saved: ${result.updated} updated, ${result.added} added. Answers, map and downloads now use these records.`;

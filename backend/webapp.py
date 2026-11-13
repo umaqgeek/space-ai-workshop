@@ -10,7 +10,7 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
 from rag_server.rag import ask, SYSTEM_PROMPT
-from backend import admin
+from backend import admin, quiz
 from data import chat_store
 from data.record_store import get_records, update_record, export_records, import_csv, EditConflict, RecordNotFound
 
@@ -36,6 +36,13 @@ class Request:
 
     def do_GET(self):
         path = urlsplit(self.path).path
+        if path in ('/api/quiz', '/api/admin/quiz'):
+            if path == '/api/admin/quiz' and not admin.is_admin(self.headers.get('Authorization', '')):
+                return self.respond({'error': 'Sign in as admin to view quiz results.'}, 403)
+            try:
+                return self.respond(quiz.state(self.headers.get('X-Quiz-Token', ''), path == '/api/admin/quiz'))
+            except (OSError, sqlite3.Error):
+                return self.respond({'error': 'Quiz storage is unavailable. Try again.'}, 503)
         if path == '/api/settings':
             return self.respond(admin.settings())
         if path == '/api/admin/session':
@@ -66,7 +73,7 @@ class Request:
             mime = {'json': 'application/json', 'csv': 'text/csv', 'geojson': 'application/geo+json'}[extension]
             return self.respond(export_records(get_records(), extension), content_type=mime + '; charset=utf-8')
         # Explicit allowlist keeps project source and local files off the web server.
-        files = {'/': ROOT / 'frontend/index.html', '/app.js': ROOT / 'frontend/app.js', '/styles.css': ROOT / 'frontend/styles.css',
+        files = {'/': ROOT / 'frontend/index.html', '/app.js': ROOT / 'frontend/app.js', '/styles.css': ROOT / 'frontend/styles.css', '/quiz.js': ROOT / 'frontend/quiz.js',
                  '/assets/adl-black.jpeg': ROOT / 'frontend/assets/adl-black.jpeg',
                  '/assets/adl-blue.png': ROOT / 'frontend/assets/adl-blue.png',
                  '/favicon.jpg': ROOT / 'frontend/assets/adl-black.jpeg',
@@ -92,7 +99,8 @@ class Request:
         edit = re.fullmatch(r'/api/records/([A-Z]+-\d{3})', path)
         importing = path == '/api/records/import'
         admin_route = path in ('/api/admin/login', '/api/admin/logout', '/api/admin/settings')
-        if path != '/api/ask' and not edit and not importing and not admin_route:
+        quiz_route = path in ('/api/quiz/register', '/api/quiz/answer', '/api/admin/quiz')
+        if path != '/api/ask' and not edit and not importing and not admin_route and not quiz_route:
             return self.respond({'error': 'Not found'}, 404)
         try:
             size = int(self.headers.get('Content-Length', '0'))
@@ -111,6 +119,15 @@ class Request:
             data = json.loads(self.rfile.read(size))
             if not isinstance(data, dict):
                 raise ValueError('Expected a JSON object.')
+            if quiz_route:
+                if path == '/api/admin/quiz':
+                    if not admin.is_admin(authorization):
+                        raise PermissionError('Sign in as admin to control the quiz.')
+                    return self.respond(quiz.control(data.get('action'), data.get('enabled')))
+                token = self.headers.get('X-Quiz-Token', '')
+                if path == '/api/quiz/register':
+                    return self.respond(quiz.register(data.get('name'), token))
+                return self.respond(quiz.answer(token, data.get('index'), data.get('selected')))
             if path == '/api/admin/login':
                 try:
                     return self.respond({'token': admin.login(data.get('password'))})
@@ -150,6 +167,8 @@ class Request:
             except (OSError, sqlite3.Error):
                 return self.respond({'error': 'Could not save this conversation. Try submitting your question again.'}, 503)
             return self.respond(result)
+        except quiz.QuizConflict as exc:
+            return self.respond({'error': str(exc)}, 409)
         except EditConflict as exc:
             return self.respond({'error': str(exc)}, 409)
         except RecordNotFound as exc:
@@ -178,7 +197,8 @@ def application(environ, start_response):
         environ['REQUEST_METHOD'], environ.get('PATH_INFO', '/') + ('?' + environ['QUERY_STRING'] if environ.get('QUERY_STRING') else ''),
         {'Content-Length': environ.get('CONTENT_LENGTH', '0'),
          'Content-Type': environ.get('CONTENT_TYPE', ''),
-         'Authorization': environ.get('HTTP_AUTHORIZATION', '')},
+         'Authorization': environ.get('HTTP_AUTHORIZATION', ''),
+         'X-Quiz-Token': environ.get('HTTP_X_QUIZ_TOKEN', '')},
         environ.get('wsgi.input', io.BytesIO()),
     )
     start_response(f'{status} {HTTPStatus(status).phrase}', headers)

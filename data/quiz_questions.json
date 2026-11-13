@@ -1,0 +1,182 @@
+[
+  {
+    "question": "What does GIS stand for?",
+    "options": [
+      "Global Information Satellite",
+      "Geographic Information System",
+      "Geospatial Intelligence Software",
+      "Global Imaging System"
+    ],
+    "answer": 1,
+    "explanation": "GIS means Geographic Information System.",
+    "round": 1
+  },
+  {
+    "question": "What does NDVI mainly measure?",
+    "options": [
+      "Flood depth",
+      "Vegetation greenness",
+      "Satellite altitude",
+      "Land temperature"
+    ],
+    "answer": 1,
+    "explanation": "NDVI indicates vegetation greenness from reflected light.",
+    "round": 1
+  },
+  {
+    "question": "What is a common unit for inundated area?",
+    "options": [
+      "Metres per second",
+      "Degrees Celsius",
+      "Hectares",
+      "Decibels"
+    ],
+    "answer": 2,
+    "explanation": "Inundated area is measured in hectares or square kilometres.",
+    "round": 1
+  },
+  {
+    "question": "Which format can store geographic coordinates and geometry?",
+    "options": [
+      "GeoJSON",
+      "MP3",
+      "JPEG only",
+      "PDF only"
+    ],
+    "answer": 0,
+    "explanation": "GeoJSON represents geographic features and properties.",
+    "round": 1
+  },
+  {
+    "question": "In GeoJSON, Point coordinates usually follow which order?",
+    "options": [
+      "Latitude, longitude",
+      "Altitude, latitude",
+      "Northing, easting",
+      "Longitude, latitude"
+    ],
+    "answer": 3,
+    "explanation": "GeoJSON geographic coordinates use longitude, latitude order.",
+    "round": 1
+  },
+  {
+    "question": "What does RAG stand for?",
+    "options": [
+      "Rapid AI Generation",
+      "Retrieval-Augmented Generation",
+      "Remote Analytics Gateway",
+      "Recursive Agent Graph"
+    ],
+    "answer": 1,
+    "explanation": "RAG combines retrieval with generation.",
+    "round": 2
+  },
+  {
+    "question": "What is retrieval used for in SpaceLab?",
+    "options": [
+      "Train a new satellite model",
+      "Launch a satellite",
+      "Find relevant stored evidence",
+      "Generate satellite photos"
+    ],
+    "answer": 2,
+    "explanation": "It finds records relevant to the question.",
+    "round": 2
+  },
+  {
+    "question": "Which retrieval method does SpaceLab use?",
+    "options": [
+      "BM25 lexical search",
+      "Only vector embeddings",
+      "Image segmentation",
+      "GPS triangulation"
+    ],
+    "answer": 0,
+    "explanation": "SpaceLab uses BM25 with place and topic constraints.",
+    "round": 2
+  },
+  {
+    "question": "Which SpaceLab mode works without an LLM?",
+    "options": [
+      "AI Ollama",
+      "Qwen generation",
+      "Web search mode",
+      "Offline retrieved excerpts"
+    ],
+    "answer": 3,
+    "explanation": "Offline mode composes excerpts without an LLM.",
+    "round": 2
+  },
+  {
+    "question": "What is Qwen's role in SpaceLab when configured?",
+    "options": [
+      "Capture satellite images",
+      "Generate natural-language answers",
+      "Correct GPS coordinates",
+      "Measure actual flooding"
+    ],
+    "answer": 1,
+    "explanation": "Qwen drafts answers from retrieved records.",
+    "round": 2
+  },
+  {
+    "question": "SpaceLab's bundled measurements are what type of data?",
+    "options": [
+      "Live satellite telemetry",
+      "Official government data",
+      "Synthetic teaching data",
+      "Verified disaster reports"
+    ],
+    "answer": 2,
+    "explanation": "The example measurements are fictional.",
+    "round": 3
+  },
+  {
+    "question": "No coastal record exists for Shah Alam. What should AI do?",
+    "options": [
+      "Invent a retreat value",
+      "Use another place silently",
+      "Report insufficient evidence",
+      "Assume zero retreat"
+    ],
+    "answer": 2,
+    "explanation": "AI should acknowledge missing evidence.",
+    "round": 3
+  },
+  {
+    "question": "A synthetic record shows 142 hectares. How much is that in km²?",
+    "options": [
+      "1.42 km²",
+      "142 km²",
+      "0.142 km²",
+      "14.2 km²"
+    ],
+    "answer": 0,
+    "explanation": "100 hectares = 1 km²; the sample is synthetic.",
+    "round": 3
+  },
+  {
+    "question": "What should you verify in a cited numerical AI answer?",
+    "options": [
+      "How confident it sounds",
+      "Source value and unit",
+      "Length of the answer",
+      "Whether Qwen was used"
+    ],
+    "answer": 1,
+    "explanation": "Match the claimed measurement and unit to its source.",
+    "round": 3
+  },
+  {
+    "question": "Which description best fits SpaceLab?",
+    "options": [
+      "Live disaster prediction system",
+      "Satellite image processor",
+      "Geospatial RAG learning app",
+      "Satellite ground control"
+    ],
+    "answer": 2,
+    "explanation": "SpaceLab teaches geospatial RAG using synthetic records.",
+    "round": 3
+  }
+]

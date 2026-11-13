@@ -48,7 +48,7 @@
     }
   }
   </script>
-  <link rel="stylesheet" href="/styles.css"><script defer src="/app.js"></script>
+  <link rel="stylesheet" href="/styles.css"><script defer src="/app.js"></script><script defer src="/quiz.js"></script>
 </head>
 <body>
   <aside class="sidebar">
@@ -59,6 +59,7 @@
       <button class="nav-item active" data-view="assistant"><span>◈</span> Intelligence assistant <small>01</small></button>
       <button class="nav-item" data-view="explorer"><span>▦</span> Data explorer <small>02</small></button>
       <button class="nav-item" data-view="architecture"><span>⌘</span> Architecture <small>03</small></button>
+      <button class="nav-item" data-view="quiz" hidden><span>◆</span> AI Showdown <small>QUIZ</small></button>
       <button class="nav-item" data-view="admin" hidden><span>⚙</span> Admin <small>04</small></button>
     </nav>
     <div class="sidebar-bottom"><div class="orbit-mini" aria-hidden="true">◎</div><strong>From orbit<br>to insight.</strong><p>Space-tech data<br>Retrieval-augmented generation</p><span class="tag">LLM + RAG</span></div>
@@ -83,10 +84,21 @@
               <p class="muted">When off, users cannot edit records or upload CSV files.</p>
               <button class="primary" type="submit">Save settings</button>
             </form>
+            <section class="quiz-admin" aria-labelledby="quiz-admin-title">
+              <h2 id="quiz-admin-title">AI Showdown · Quiz control</h2>
+              <p>15 questions · 10 seconds each · 1 point per correct answer. Open registration, wait for players, then start everyone together. Starting closes registration. Hiding the quiz does not pause the clock.</p>
+              <div class="quiz-actions"><button type="button" id="quiz-toggle">Enable quiz</button><button type="button" id="quiz-start" class="primary">Start quiz</button><button type="button" id="quiz-reset">Reset round &amp; all results</button></div>
+              <p id="quiz-admin-status" role="status"></p><div id="quiz-admin-results"></div>
+            </section>
             <button class="text-button" id="admin-signout" type="button">Sign out</button>
           </div>
           <p id="admin-status" role="status" aria-live="polite"></p>
         </section>
+      </section>
+      <section id="view-quiz" class="view" hidden>
+        <div class="page-title"><span class="eyebrow">AI FOR SPACE / LIVE CHALLENGE</span><h1>SpaceLab Showdown.</h1><p>Think fast. Follow the evidence. 15 questions, 10 seconds each.</p></div>
+        <div id="quiz-stage" class="card quiz-stage"></div>
+        <p id="quiz-message" role="status" aria-live="polite"></p>
       </section>
       <section id="view-assistant" class="view">
         <header class="assistant-heading"><div><span class="eyebrow">INTELLIGENCE ASSISTANT</span><h1>What would you like to explore?</h1><button type="button" class="note-trigger" data-tooltip="Ask about a place. Follow the evidence." aria-label="Assistant information">ⓘ</button></div><span class="tag pale">SYNTHETIC TEACHING DATA</span></header>

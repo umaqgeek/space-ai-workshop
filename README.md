@@ -359,3 +359,52 @@ responsibilities within the existing application; the backend still serves the
 frontend and calls the RAG engine in the same process. API, diagram and dataset
 download URLs remain unchanged. Deployment keeps `docs/diagrams/` available
 because the Architecture page serves those SVG documents.
+
+
+## AI Showdown quiz
+
+The **AI Showdown** section is disabled by default. Sign in through the existing
+Admin entry (hold the SpaceLab brand, or press Ctrl/Cmd + Shift + U), then use
+**AI Showdown · Quiz control**:
+
+1. **Enable quiz** to show the navigation section to every visitor and open the
+   registration lobby. Visitors enter a name and keep that browser open.
+2. **Start quiz** to close registration and start all registered players after a
+   shared three-second countdown. At least one player must be registered.
+3. Each of the PDF's 15 questions lasts **10 seconds** (150 seconds total).
+   Clicking an option saves the choice immediately; players can change it until
+   the server deadline. At the deadline, the latest saved choice is final and
+   the next question appears automatically. Missing answers score zero, including
+   questions missed while disconnected or away. Each correct answer earns one
+   point; there is no speed bonus. The PDF's “15-minute” heading does not override
+   this requested 10-second-per-question schedule.
+4. After the final deadline, players automatically see their score and an answer
+   review. Admin shows every player's final score, leaderboard and answer review;
+   while playing, it shows registration and answered-question counts.
+5. **Reset round & all results** deletes all player entries, answers and scores
+   after confirmation. It reopens registration if the quiz is enabled. Players
+   must register again, and the admin must start the new round.
+
+Disabling hides the section and rejects new answers, but does not pause or reset
+an active round. Enabling an existing round restores its current state. Visitors
+receive visibility changes through polling, normally within a second. Timers,
+registration closure and scores are enforced by the server across browser tabs
+and application workers. Only the current question is sent during play; answer
+keys and explanations are withheld until the full round ends.
+
+Player names are normalized and unique within a round. A random participant
+credential is saved in browser local storage, while only its hash is stored on
+the server. Refreshing or reopening the same browser resumes its entry. This is
+name-based workshop participation, not verified identity: another browser using
+a distinct name can register during the lobby. Clearing browser storage loses
+access to that entry until the admin resets the round. Browser storage must be
+available before registering.
+
+Questions and explanations were transcribed from
+`SpaceLab_AI_Showdown_15_Questions_Answers_3pages.pdf` into the server-only
+`data/quiz_questions.json`. Quiz state uses the existing shared SQLite database
+under `SPACELAB_DATA_DIR`. The deployment must provide persistent storage and a
+single shared database for all workers; as with existing records and sessions,
+Heroku's ephemeral filesystem does not retain SQLite data across dyno restarts
+and separate dynos do not share it. Use a persistent single-instance deployment
+for a live workshop; a multi-dyno deployment needs shared database storage.

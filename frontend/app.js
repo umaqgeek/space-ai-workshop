@@ -67,7 +67,7 @@ document.addEventListener('click', event => {
 });
 window.addEventListener('resize', hideNote);
 document.addEventListener('scroll', event => { if (!assistantTooltip.contains(event.target)) hideNote(); }, true);
-const titles = {assistant:'Intelligence assistant', explorer:'Data explorer', architecture:'Architecture', admin:'Admin'};
+const titles = {assistant:'Intelligence assistant', explorer:'Data explorer', architecture:'Architecture', quiz:'AI Showdown', admin:'Admin'};
 let records = [], latest = null, malaysiaOutline = null;
 // Deliberately kept in memory: every page load starts a fresh session.
 let chatSessionId = null, conversations = [], viewingHistory = false, chatBusy = false;
@@ -84,6 +84,7 @@ function showView(view) {
   hideNote();
   if (!titles[view]) view = 'assistant';
   if (view === 'admin' && !isAdmin && !adminEntryRevealed) view = 'assistant';
+  if (view === 'quiz' && !window.quizEnabled) view = 'assistant';
   document.querySelectorAll('.view').forEach(section => {section.hidden = section.id !== `view-${view}`;});
   document.querySelectorAll('[data-view]').forEach(button => {
     button.classList.toggle('active', button.dataset.view === view);
@@ -604,6 +605,7 @@ function download(name, data) {
 }
 async function init() {
   const initialView = location.hash.slice(1) || 'assistant';
+  window.quizRequested = initialView === 'quiz';
   showView(initialView);
   resizeQuestion();
   try {
@@ -653,6 +655,7 @@ function applyPermissions() {
     }
   }
   setEditorControls();
+  window.dispatchEvent(new Event('quiz-permissions'));
 }
 function clearAdminSession() {
   adminToken = '';

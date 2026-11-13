@@ -380,11 +380,14 @@ Admin entry (hold the SpaceLab brand, or press Ctrl/Cmd + Shift + U), then use
    cannot choose again, including after refreshing or using another tab.
    Everyone advances together when that question's timer expires. Missing
    answers score zero, including questions missed while disconnected or away.
-   Each correct answer earns one point; there is no speed bonus. The PDF's
+   Each correct answer earns one point. Tied scores are ranked by the lowest
+   total response time on correct answers. The PDF's
    “15-minute” heading does not determine the actual question timers.
 4. After the final deadline, players automatically see their score and an answer
    review. Admin shows every player's final score, leaderboard and answer review;
-   while playing, it shows registration and answered-question counts.
+   while playing, it shows registration and answered-question counts. Results
+   include the final rank, total correct-answer time, and each answer's response
+   time. Identical scores and times share a rank (for example, 1, 1, 3).
 5. **Reset round & all results** deletes all player entries, answers and scores
    after confirmation. It reopens registration if the quiz is enabled. Players
    must register again, and the admin must start the new round.
@@ -395,6 +398,19 @@ receive visibility changes through polling, normally within a second. Timers,
 registration closure and scores are enforced by the server across browser tabs
 and application workers. Only the current question is sent during play; answer
 keys and explanations are withheld until the full round ends.
+
+Response times are measured on the server in milliseconds from each question's
+scheduled start to receipt and acceptance of the first answer, including network
+and processing delay. Client-supplied times are ignored. Incorrect and missing
+answers contribute no time to the tie-break total; correct-answer count always
+takes priority over speed. Answer and timing are saved atomically and cannot be
+changed by a repeat submission, a refresh, or another tab. No correctness or
+timing result is revealed during play.
+
+Existing databases are upgraded automatically without deleting results. Older
+answers have no recorded response time; an older correct answer uses its full
+question allowance for ranking and the total is marked **estimated**. Reset the
+round to start a new quiz with measured times for every answer.
 
 Player names are normalized and unique within a round. A random participant
 credential is saved in browser local storage, while only its hash is stored on

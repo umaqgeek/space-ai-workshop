@@ -2,6 +2,7 @@
 import io
 import json
 import os
+import sqlite3
 import tempfile
 import unittest
 from concurrent.futures import ThreadPoolExecutor
@@ -179,6 +180,89 @@ class QuizTests(unittest.TestCase):
         self.assertEqual(self.request('/api/quiz', token=token)[1]['question']['selected'], saved)
         self.clock.return_value = 1013
         self.assertEqual(self.request('/api/quiz/answer', {'index':1,'selected':2}, token=token)[0], 200)
+
+    def test_response_times_are_server_measured_persisted_and_locked(self):
+        token = self.start()
+        self.clock.return_value = 1004.25
+        status, accepted = self.request('/api/quiz/answer', {
+            'index':0, 'selected':1, 'response_time_ms':0, 'answered_at':1003,
+        }, token=token)
+        self.assertEqual(status, 200)
+        self.assertNotIn('response_time_ms', accepted['question'])
+        self.assertNotIn('result', accepted)
+        self.clock.return_value = 1010
+        self.assertEqual(self.request('/api/quiz/answer', {'index':0,'selected':0}, token=token)[0], 409)
+        self.assertEqual(self.request('/api/quiz', token=token)[1]['question']['selected'], 1)
+        # Q2 starts at 1013, independently of when Q1 was answered.
+        self.clock.return_value = 1015.75
+        self.assertEqual(self.request('/api/quiz/answer', {'index':1,'selected':1}, token=token)[0], 200)
+        # Q3 starts after the longer Q2 timer, at 1028. A wrong answer's
+        # timing is recorded for review but excluded from the tie-break sum.
+        self.clock.return_value = 1028.5
+        self.assertEqual(self.request('/api/quiz/answer', {'index':2,'selected':0}, token=token)[0], 200)
+        self.clock.return_value = 1003 + quiz.TOTAL_SECONDS
+        personal = self.request('/api/quiz', token=token)[1]['result']
+        self.assertEqual(personal['score'], 2)
+        self.assertEqual(personal['correct_time_ms'], 4000)
+        self.assertEqual(personal['rank'], 1)
+        self.assertFalse(personal['timing_estimated'])
+        self.assertEqual([r['response_time_ms'] for r in personal['review'][:4]], [1250, 2750, 500, None])
+        self.assertEqual(self.request('/api/admin/quiz', admin=self.admin)[1]['players'][0]['result'], personal)
+        # Re-reading persisted results never changes their time or rank.
+        self.clock.return_value += 50
+        self.assertEqual(self.request('/api/quiz', token=token)[1]['result'], personal)
+        self.control('reset')
+        new_token = self.join()
+        with quiz.connection() as db:
+            player = db.execute('SELECT * FROM quiz_players WHERE token=?', (quiz.digest(new_token),)).fetchone()
+            self.assertEqual(json.loads(player['answer_times']), {})
+
+    def test_rank_by_score_then_correct_answer_time_and_share_exact_ties(self):
+        self.control('visibility', enabled=True)
+        tokens = {name:self.join(name) for name in ('A Slow', 'B Fast', 'C More Correct', 'D Wrong', 'E Equally Fast')}
+        self.control('start')
+        # Higher scores win regardless of time. B and E have identical
+        # correct-answer totals; fast wrong answers must never improve a rank.
+        submissions = [
+            (1003.1, 'D Wrong', 0, 0),
+            (1005, 'B Fast', 0, 1), (1005, 'E Equally Fast', 0, 1),
+            (1007, 'A Slow', 0, 1), (1011, 'C More Correct', 0, 1),
+            (1016, 'B Fast', 1, 1), (1016, 'E Equally Fast', 1, 1),
+            (1020, 'A Slow', 1, 1), (1025, 'C More Correct', 1, 1),
+            (1028.1, 'A Slow', 2, 0), (1037, 'C More Correct', 2, 2),
+        ]
+        for timestamp, name, index, selected in submissions:
+            self.clock.return_value = timestamp
+            self.assertEqual(self.request('/api/quiz/answer', {'index':index,'selected':selected}, token=tokens[name])[0], 200)
+        self.clock.return_value = 1003 + quiz.TOTAL_SECONDS
+        players = self.request('/api/admin/quiz', admin=self.admin)[1]['players']
+        self.assertEqual([p['name'] for p in players], ['C More Correct', 'B Fast', 'E Equally Fast', 'A Slow', 'D Wrong'])
+        self.assertEqual([p['result']['rank'] for p in players], [1, 2, 2, 4, 5])
+        self.assertEqual([p['result']['correct_time_ms'] for p in players], [29000, 5000, 5000, 11000, 0])
+        for player in players:
+            personal = self.request('/api/quiz', token=tokens[player['name']])[1]
+            self.assertEqual(personal['result'], player['result'])
+            self.assertNotIn('players', personal)
+
+    def test_legacy_database_upgrade_preserves_answers_and_marks_missing_times(self):
+        # Reproduce the schema from before timing capture was introduced.
+        with sqlite3.connect(str(quiz.database_path())) as db:
+            db.execute('CREATE TABLE quiz_round (id INTEGER PRIMARY KEY, enabled INTEGER NOT NULL, started REAL)')
+            db.execute('INSERT INTO quiz_round VALUES (1, 1, 1003)')
+            db.execute('CREATE TABLE quiz_players (token TEXT PRIMARY KEY, name TEXT NOT NULL, name_key TEXT UNIQUE NOT NULL, answers TEXT NOT NULL)')
+            db.execute('INSERT INTO quiz_players VALUES (?, ?, ?, ?)',
+                       (quiz.digest('legacy'), 'Legacy Player', 'legacy player', json.dumps({'0':1, '1':0})))
+        db.close()
+        self.clock.return_value = 1003 + quiz.TOTAL_SECONDS
+        personal = self.request('/api/quiz', token='legacy')[1]['result']
+        self.assertEqual(personal['score'], 1)
+        self.assertEqual(personal['correct_time_ms'], 10000)
+        self.assertTrue(personal['timing_estimated'])
+        self.assertIsNone(personal['review'][0]['response_time_ms'])
+        self.assertEqual(personal['rank'], 1)
+        self.assertEqual(self.request('/api/admin/quiz', admin=self.admin)[1]['players'][0]['result'], personal)
+        self.control('reset')
+        self.join('New Player')
 
     def test_concurrent_duplicate_registration_is_atomic(self):
         self.control('visibility', enabled=True)

@@ -7,6 +7,8 @@
   const escape = value => escapeHtml(String(value));
   const post = (path, body) => api(path, {method:'POST', headers:{'Content-Type':'application/json', 'X-Quiz-Token':token}, body:JSON.stringify(body)});
   const now = () => Date.now() / 1000 + offset;
+  const formatTime = milliseconds => `${(milliseconds / 1000).toFixed(3)}s`;
+  const correctTime = result => `${formatTime(result.correct_time_ms)}${result.timing_estimated ? ' (estimated)' : ''}`;
   function accept(next) {
     const phaseChanged = state?.phase !== next.phase;
     state = next;
@@ -32,7 +34,7 @@
       stage.innerHTML = '<h2>The quiz is currently disabled.</h2>';
     } else if (state.result) {
       const r = state.result;
-      stage.innerHTML = `<span class="tag">ROUND COMPLETE</span><h2 id="quiz-complete" tabindex="-1">Well played, ${escape(r.name)}!</h2><div class="quiz-score">${r.score}<small> / ${r.total}</small></div><p>${r.percentage}% correct. Your result is saved. Wait for the admin to reset the round before joining again.</p>${review(r)}`;
+      stage.innerHTML = `<span class="tag">ROUND COMPLETE</span><h2 id="quiz-complete" tabindex="-1">Well played, ${escape(r.name)}!</h2><div class="quiz-score">${r.score}<small> / ${r.total}</small></div><p>${r.percentage}% correct. <strong>Rank #${r.rank}</strong> · Correct-answer time: <strong>${correctTime(r)}</strong>. Your result is saved. Wait for the admin to reset the round before joining again.</p>${r.timing_estimated ? '<p>Older untimed correct answers use their full question allowance.</p>' : ''}<p>Rankings use correct-answer count first, then the lowest total time on correct answers.</p>${review(r)}`;
       stage.setAttribute('aria-label', `Quiz complete. ${r.name}, ${r.score} out of ${r.total}.`);
     } else if (state.question) {
       const q = state.question;
@@ -40,7 +42,7 @@
       stage.innerHTML = `<div class="quiz-topline"><span class="tag">ROUND ${q.round} · QUESTION ${q.index+1} / ${state.total} · ${q.seconds}s</span><span>${escape(state.player.name)}</span><strong id="quiz-clock" role="timer" aria-label="Seconds remaining"></strong></div><div class="quiz-time-track"><div id="quiz-time-bar"></div></div><h2 tabindex="-1" id="quiz-question">${escape(q.question)}</h2><div class="quiz-options" role="group" aria-label="Answer choices">${q.options.map((text, i) => `<button type="button" class="quiz-option quiz-color-${i}" data-choice="${i}" aria-pressed="${q.selected === i}" ${q.selected != null ? 'disabled' : ''}><span aria-hidden="true">${shapes[i]}</span><span>${String.fromCharCode(65+i)}. ${escape(text)}</span><span class="quiz-chosen">${q.selected === i ? '✓' : ''}</span></button>`).join('')}</div><p class="quiz-save-note">${q.selected == null ? 'Choose carefully: your first answer is final. No answer = 0 points.' : 'Answer locked. Waiting for the next question.'}</p>`;
       stage.querySelectorAll('[data-choice]').forEach(button => button.addEventListener('click', () => choose(q.index, Number(button.dataset.choice))));
     } else if (state.player) {
-      stage.innerHTML = `<div class="quiz-lobby-icon" aria-hidden="true">✦</div><span class="tag">${state.starts_at ? 'GET READY' : 'YOU’RE IN'}</span><h2>${escape(state.player.name)}, ${state.starts_at ? 'the quiz is starting!' : 'welcome to the lobby.'}</h2><p>${state.registered} player${state.registered === 1 ? '' : 's'} registered. ${state.starts_at ? '<strong id="quiz-countdown" role="timer"></strong>' : 'Waiting for the admin to start everyone together.'}</p><p>Your place is saved in this browser. Questions last 10–20 seconds depending on difficulty; unanswered questions score zero.</p>`;
+      stage.innerHTML = `<div class="quiz-lobby-icon" aria-hidden="true">✦</div><span class="tag">${state.starts_at ? 'GET READY' : 'YOU’RE IN'}</span><h2>${escape(state.player.name)}, ${state.starts_at ? 'the quiz is starting!' : 'welcome to the lobby.'}</h2><p>${state.registered} player${state.registered === 1 ? '' : 's'} registered. ${state.starts_at ? '<strong id="quiz-countdown" role="timer"></strong>' : 'Waiting for the admin to start everyone together.'}</p><p>Your place is saved in this browser. Questions last 10–20 seconds depending on difficulty; unanswered questions score zero. Equal scores are ranked by the fastest total time on correct answers.</p>`;
     } else if (state.phase !== 'lobby') {
       stage.innerHTML = '<span class="tag">REGISTRATION CLOSED</span><h2>This round has already started.</h2><p>Only players who joined before the start can take part. The admin can reset the round to reopen registration.</p>';
     } else {
@@ -54,7 +56,7 @@
     tick();
   }
   function review(result) {
-    return `<details class="quiz-review"><summary>Review all ${result.total} answers</summary>${result.review.map((r, i) => `<div class="quiz-review-item"><strong>${i+1}. ${escape(r.question)} · ${r.correct ? '✓ Correct' : '✕ Wrong'}</strong><p>Your answer: ${r.selected == null ? 'No answer' : escape(r.options[r.selected])}<br>Correct answer: ${escape(r.options[r.answer])}</p><p>${escape(r.explanation)}</p></div>`).join('')}</details>`;
+    return `<details class="quiz-review"><summary>Review all ${result.total} answers</summary>${result.review.map((r, i) => `<div class="quiz-review-item"><strong>${i+1}. ${escape(r.question)} · ${r.correct ? '✓ Correct' : '✕ Wrong'}</strong><p>Your answer: ${r.selected == null ? 'No answer' : escape(r.options[r.selected])}<br>Correct answer: ${escape(r.options[r.answer])}</p><p>Response time: ${r.response_time_ms != null ? formatTime(r.response_time_ms) : r.selected == null ? 'No answer' : 'Not recorded (older answer)'}</p><p>${escape(r.explanation)}</p></div>`).join('')}</details>`;
   }
   async function join(event) {
     event.preventDefault();
@@ -108,7 +110,7 @@
     $('quiz-toggle').textContent = next.enabled ? 'Disable quiz' : 'Enable quiz';
     $('quiz-start').disabled = !next.enabled || next.phase !== 'lobby' || !next.registered || busy;
     $('quiz-admin-status').textContent = `${next.enabled ? 'Visible to everyone' : 'Disabled / hidden'} · ${next.phase} · ${next.registered} registered player${next.registered === 1 ? '' : 's'}`;
-    $('quiz-admin-results').innerHTML = next.players.length ? `<div class="quiz-table-wrap"><table class="quiz-results-table"><caption>${next.phase === 'finished' ? 'Final leaderboard' : 'Registered players · results appear when the round ends'}</caption><thead><tr><th scope="col">Player</th><th scope="col">Answered</th><th scope="col">Score</th></tr></thead><tbody>${next.players.map(p => `<tr><td>${escape(p.name)}</td><td>${p.answered} / ${next.total}</td><td>${p.result ? `${p.result.score} / ${p.result.total} (${p.result.percentage}%)` : 'Pending'}</td></tr>`).join('')}</tbody></table></div>${next.players.filter(p => p.result).map(p => `<details class="quiz-player-review"><summary>${escape(p.name)} · ${p.result.score} / ${next.total}</summary>${review(p.result)}</details>`).join('')}` : '<p>No players registered yet.</p>';
+    $('quiz-admin-results').innerHTML = next.players.length ? `<p>Players with the most correct answers rank first. Equal scores use the lowest total time on correct answers; identical scores and times share a rank.</p><div class="quiz-table-wrap"><table class="quiz-results-table"><caption>${next.phase === 'finished' ? 'Final leaderboard' : 'Registered players · results appear when the round ends'}</caption><thead><tr><th scope="col">Rank</th><th scope="col">Player</th><th scope="col">Answered</th><th scope="col">Score</th><th scope="col">Correct-answer time</th></tr></thead><tbody>${next.players.map(p => `<tr><td>${p.result ? `#${p.result.rank}` : '—'}</td><td>${escape(p.name)}</td><td>${p.answered} / ${next.total}</td><td>${p.result ? `${p.result.score} / ${p.result.total} (${p.result.percentage}%)` : 'Pending'}</td><td>${p.result ? correctTime(p.result) : 'Pending'}</td></tr>`).join('')}</tbody></table></div>${next.players.some(p => p.result?.timing_estimated) ? '<p>Estimated times include the full question allowance for older untimed correct answers.</p>' : ''}${next.players.filter(p => p.result).map(p => `<details class="quiz-player-review"><summary>#${p.result.rank} · ${escape(p.name)} · ${p.result.score} / ${next.total} · ${correctTime(p.result)}</summary>${review(p.result)}</details>`).join('')}` : '<p>No players registered yet.</p>';
   }
   async function control(action, enabled) {
     if (busy) return;

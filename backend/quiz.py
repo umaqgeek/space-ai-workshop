@@ -31,11 +31,14 @@ def connection():
         db.execute('INSERT OR IGNORE INTO quiz_round VALUES (1, 0, NULL)')
         db.execute('''CREATE TABLE IF NOT EXISTS quiz_players (
             token TEXT PRIMARY KEY, name TEXT NOT NULL, name_key TEXT UNIQUE NOT NULL,
-            answers TEXT NOT NULL)''')
+            answers TEXT NOT NULL, answer_times TEXT NOT NULL DEFAULT '{}')''')
         db.commit()
         # Serialize registration, start, reset and answers across workers.
         db.execute('BEGIN IMMEDIATE')
         try:
+            columns = {row['name'] for row in db.execute('PRAGMA table_info(quiz_players)')}
+            if 'answer_times' not in columns:
+                db.execute("ALTER TABLE quiz_players ADD COLUMN answer_times TEXT NOT NULL DEFAULT '{}'")
             yield db
             db.commit()
         except Exception:
@@ -55,12 +58,35 @@ def phase(row, now):
 
 def result(player):
     answers = json.loads(player['answers'])
+    times = json.loads(player['answer_times'])
     review = [dict(question=q['question'], options=q['options'], answer=q['answer'],
                    explanation=q['explanation'], selected=answers.get(str(i)),
+                   response_time_ms=times.get(str(i)),
                    correct=answers.get(str(i)) == q['answer']) for i, q in enumerate(QUESTIONS)]
     score = sum(item['correct'] for item in review)
+    # Historical answers have no timestamp. Use their full question allowance
+    # instead of treating missing timing as an instantaneous answer.
+    correct_time_ms = sum(item['response_time_ms'] if item['response_time_ms'] is not None
+                          else QUESTIONS[i]['seconds'] * 1000
+                          for i, item in enumerate(review) if item['correct'])
     return {'name': player['name'], 'score': score, 'total': len(QUESTIONS),
-            'percentage': round(score / len(QUESTIONS) * 100), 'review': review}
+            'percentage': round(score / len(QUESTIONS) * 100), 'review': review,
+            'correct_time_ms': correct_time_ms,
+            'timing_estimated': any(item['correct'] and item['response_time_ms'] is None for item in review)}
+
+
+def ranked_results(db):
+    """Correct answers rank first; total response time on correct answers breaks ties."""
+    ranked = [(p, result(p)) for p in db.execute('SELECT * FROM quiz_players ORDER BY name_key')]
+    ranked.sort(key=lambda item: (-item[1]['score'], item[1]['correct_time_ms']))
+    previous, rank = None, 0
+    for position, (_, score) in enumerate(ranked, 1):
+        key = (score['score'], score['correct_time_ms'])
+        if key != previous:
+            rank = position
+        score['rank'] = rank
+        previous = key
+    return ranked
 
 
 def snapshot(db, token='', administrative=False):
@@ -71,10 +97,10 @@ def snapshot(db, token='', administrative=False):
                  server_time=now, total=len(QUESTIONS), total_seconds=TOTAL_SECONDS,
                  registered=db.execute('SELECT COUNT(*) FROM quiz_players').fetchone()[0])
     if administrative:
-        players = db.execute('SELECT * FROM quiz_players ORDER BY name_key').fetchall()
+        players = (ranked_results(db) if current_phase == 'finished' else
+                   [(p, None) for p in db.execute('SELECT * FROM quiz_players ORDER BY name_key')])
         state['players'] = [dict(name=p['name'], answered=len(json.loads(p['answers'])),
-                                 result=result(p) if current_phase == 'finished' else None) for p in players]
-        state['players'].sort(key=lambda p: -(p['result']['score'] if p['result'] else 0))
+                                 result=score) for p, score in players]
         return state
     if not row['enabled']:
         return state
@@ -82,7 +108,7 @@ def snapshot(db, token='', administrative=False):
     if player:
         state['player'] = {'name': player['name']}
         if current_phase == 'finished':
-            state['result'] = result(player)
+            state['result'] = next(score for p, score in ranked_results(db) if p['token'] == player['token'])
         elif current_phase == 'running' and now < row['started']:
             state['starts_at'] = row['started']
         elif current_phase == 'running':
@@ -115,7 +141,7 @@ def register(name, token=''):
         if db.execute('SELECT 1 FROM quiz_players WHERE name_key=?', (name.casefold(),)).fetchone():
             raise QuizConflict('That name is already registered for this round. Use your existing browser, or a distinct name if you are another person.')
         token = secrets.token_urlsafe(32)
-        db.execute('INSERT INTO quiz_players VALUES (?, ?, ?, ?)', (digest(token), name, name.casefold(), '{}'))
+        db.execute('INSERT INTO quiz_players (token, name, name_key, answers) VALUES (?, ?, ?, ?)', (digest(token), name, name.casefold(), '{}'))
         return dict(snapshot(db, token), token=token)
 
 
@@ -138,7 +164,11 @@ def answer(token, index, selected):
         if str(index) in answers:
             raise QuizConflict('Your answer is already locked. You cannot choose again.')
         answers[str(index)] = selected
-        db.execute('UPDATE quiz_players SET answers=? WHERE token=?', (json.dumps(answers), player['token']))
+        question_start = row['started'] + (QUESTION_ENDS[index - 1] if index else 0)
+        times = json.loads(player['answer_times'])
+        times[str(index)] = round((now - question_start) * 1000)
+        db.execute('UPDATE quiz_players SET answers=?, answer_times=? WHERE token=?',
+                   (json.dumps(answers), json.dumps(times), player['token']))
         return snapshot(db, token)
 
 

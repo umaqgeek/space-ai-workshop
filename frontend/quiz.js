@@ -37,10 +37,10 @@
     } else if (state.question) {
       const q = state.question;
       const shapes = ['▲', '◆', '●', '■'];
-      stage.innerHTML = `<div class="quiz-topline"><span class="tag">ROUND ${q.round} · QUESTION ${q.index+1} / ${state.total}</span><span>${escape(state.player.name)}</span><strong id="quiz-clock" role="timer" aria-label="Seconds remaining"></strong></div><div class="quiz-time-track"><div id="quiz-time-bar"></div></div><h2 tabindex="-1" id="quiz-question">${escape(q.question)}</h2><div class="quiz-options" role="group" aria-label="Answer choices">${q.options.map((text, i) => `<button type="button" class="quiz-option quiz-color-${i}" data-choice="${i}" aria-pressed="${q.selected === i}"><span aria-hidden="true">${shapes[i]}</span><span>${String.fromCharCode(65+i)}. ${escape(text)}</span><span class="quiz-chosen">${q.selected === i ? '✓' : ''}</span></button>`).join('')}</div><p class="quiz-save-note">${q.selected == null ? 'Choose an answer before time runs out. No answer = 0 points.' : 'Answer saved. You may change it until the timer ends.'}</p>`;
+      stage.innerHTML = `<div class="quiz-topline"><span class="tag">ROUND ${q.round} · QUESTION ${q.index+1} / ${state.total} · ${q.seconds}s</span><span>${escape(state.player.name)}</span><strong id="quiz-clock" role="timer" aria-label="Seconds remaining"></strong></div><div class="quiz-time-track"><div id="quiz-time-bar"></div></div><h2 tabindex="-1" id="quiz-question">${escape(q.question)}</h2><div class="quiz-options" role="group" aria-label="Answer choices">${q.options.map((text, i) => `<button type="button" class="quiz-option quiz-color-${i}" data-choice="${i}" aria-pressed="${q.selected === i}" ${q.selected != null ? 'disabled' : ''}><span aria-hidden="true">${shapes[i]}</span><span>${String.fromCharCode(65+i)}. ${escape(text)}</span><span class="quiz-chosen">${q.selected === i ? '✓' : ''}</span></button>`).join('')}</div><p class="quiz-save-note">${q.selected == null ? 'Choose carefully: your first answer is final. No answer = 0 points.' : 'Answer locked. Waiting for the next question.'}</p>`;
       stage.querySelectorAll('[data-choice]').forEach(button => button.addEventListener('click', () => choose(q.index, Number(button.dataset.choice))));
     } else if (state.player) {
-      stage.innerHTML = `<div class="quiz-lobby-icon" aria-hidden="true">✦</div><span class="tag">${state.starts_at ? 'GET READY' : 'YOU’RE IN'}</span><h2>${escape(state.player.name)}, ${state.starts_at ? 'the quiz is starting!' : 'welcome to the lobby.'}</h2><p>${state.registered} player${state.registered === 1 ? '' : 's'} registered. ${state.starts_at ? '<strong id="quiz-countdown" role="timer"></strong>' : 'Waiting for the admin to start everyone together.'}</p><p>Your place is saved in this browser. Each question lasts 10 seconds; unanswered questions score zero.</p>`;
+      stage.innerHTML = `<div class="quiz-lobby-icon" aria-hidden="true">✦</div><span class="tag">${state.starts_at ? 'GET READY' : 'YOU’RE IN'}</span><h2>${escape(state.player.name)}, ${state.starts_at ? 'the quiz is starting!' : 'welcome to the lobby.'}</h2><p>${state.registered} player${state.registered === 1 ? '' : 's'} registered. ${state.starts_at ? '<strong id="quiz-countdown" role="timer"></strong>' : 'Waiting for the admin to start everyone together.'}</p><p>Your place is saved in this browser. Questions last 10–20 seconds depending on difficulty; unanswered questions score zero.</p>`;
     } else if (state.phase !== 'lobby') {
       stage.innerHTML = '<span class="tag">REGISTRATION CLOSED</span><h2>This round has already started.</h2><p>Only players who joined before the start can take part. The admin can reset the round to reopen registration.</p>';
     } else {
@@ -77,16 +77,16 @@
     finally { busy = false; button.disabled = false; }
   }
   async function choose(index, selected) {
-    if (busy || now() >= state.question.deadline) return;
+    if (busy || !state?.question || state.question.index !== index || state.question.selected != null || now() >= state.question.deadline) return;
     busy = true; version++;
     $('quiz-stage').querySelectorAll('[data-choice]').forEach(b => { b.disabled = true; });
     try {
       accept(await post('/api/quiz/answer', {index, selected}));
-      $('quiz-message').textContent = 'Answer saved.';
+      $('quiz-message').textContent = 'Answer locked. You cannot change your choice.';
     } catch (error) { $('quiz-message').textContent = error.message; }
     finally {
       busy = false;
-      $('quiz-stage').querySelectorAll('[data-choice]').forEach(b => { b.disabled = !state.question || now() >= state.question.deadline; });
+      $('quiz-stage').querySelectorAll('[data-choice]').forEach(b => { b.disabled = !state.question || state.question.selected != null || now() >= state.question.deadline; });
       poll();
     }
   }
@@ -94,7 +94,7 @@
     if (state?.question && $('quiz-clock')) {
       const remaining = Math.max(0, state.question.deadline - now());
       $('quiz-clock').textContent = `${Math.ceil(remaining)}s`;
-      $('quiz-time-bar').style.width = `${remaining / state.seconds * 100}%`;
+      $('quiz-time-bar').style.width = `${remaining / state.question.seconds * 100}%`;
       if (!remaining) $('quiz-stage').querySelectorAll('[data-choice]').forEach(b => { b.disabled = true; });
     }
     if (state?.starts_at && $('quiz-countdown')) $('quiz-countdown').textContent = `Starting in ${Math.max(0, Math.ceil(state.starts_at - now()))}…`;

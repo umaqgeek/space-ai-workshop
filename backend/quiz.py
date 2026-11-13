@@ -5,13 +5,16 @@ import secrets
 import sqlite3
 import time
 import unicodedata
+from bisect import bisect_right
 from contextlib import closing, contextmanager
+from itertools import accumulate
 from pathlib import Path
 
 from data.record_store import database_path
 
 QUESTIONS = json.loads((Path(__file__).resolve().parents[1] / 'data/quiz_questions.json').read_text())
-SECONDS = 10
+QUESTION_ENDS = list(accumulate(q['seconds'] for q in QUESTIONS))
+TOTAL_SECONDS = QUESTION_ENDS[-1]
 
 
 class QuizConflict(ValueError):
@@ -47,7 +50,7 @@ def digest(token):
 def phase(row, now):
     if row['started'] is None:
         return 'lobby'
-    return 'finished' if now >= row['started'] + len(QUESTIONS) * SECONDS else 'running'
+    return 'finished' if now >= row['started'] + TOTAL_SECONDS else 'running'
 
 
 def result(player):
@@ -65,7 +68,7 @@ def snapshot(db, token='', administrative=False):
     now = time.time()
     current_phase = phase(row, now)
     state = dict(enabled=bool(row['enabled']), phase=current_phase,
-                 server_time=now, total=len(QUESTIONS), seconds=SECONDS,
+                 server_time=now, total=len(QUESTIONS), total_seconds=TOTAL_SECONDS,
                  registered=db.execute('SELECT COUNT(*) FROM quiz_players').fetchone()[0])
     if administrative:
         players = db.execute('SELECT * FROM quiz_players ORDER BY name_key').fetchall()
@@ -83,10 +86,11 @@ def snapshot(db, token='', administrative=False):
         elif current_phase == 'running' and now < row['started']:
             state['starts_at'] = row['started']
         elif current_phase == 'running':
-            index = int((now - row['started']) // SECONDS)
+            index = bisect_right(QUESTION_ENDS, now - row['started'])
             q = QUESTIONS[index]
             state['question'] = dict(index=index, question=q['question'], options=q['options'],
-                                     round=q['round'], deadline=row['started'] + (index + 1) * SECONDS,
+                                     round=q['round'], seconds=q['seconds'],
+                                     deadline=row['started'] + QUESTION_ENDS[index],
                                      selected=json.loads(player['answers']).get(str(index)))
     return state
 
@@ -126,9 +130,13 @@ def answer(token, index, selected):
         if not player:
             raise PermissionError('Register for the quiz first.')
         now = time.time()
-        if not row['enabled'] or phase(row, now) != 'running' or index != int((now - row['started']) // SECONDS):
+        if (not row['enabled'] or phase(row, now) != 'running'
+                or now < row['started']
+                or index != bisect_right(QUESTION_ENDS, now - row['started'])):
             raise QuizConflict('This question has closed. Your late answer was not saved.')
         answers = json.loads(player['answers'])
+        if str(index) in answers:
+            raise QuizConflict('Your answer is already locked. You cannot choose again.')
         answers[str(index)] = selected
         db.execute('UPDATE quiz_players SET answers=? WHERE token=?', (json.dumps(answers), player['token']))
         return snapshot(db, token)

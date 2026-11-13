@@ -371,13 +371,17 @@ Admin entry (hold the SpaceLab brand, or press Ctrl/Cmd + Shift + U), then use
    registration lobby. Visitors enter a name and keep that browser open.
 2. **Start quiz** to close registration and start all registered players after a
    shared three-second countdown. At least one player must be registered.
-3. Each of the PDF's 15 questions lasts **10 seconds** (150 seconds total).
-   Clicking an option saves the choice immediately; players can change it until
-   the server deadline. At the deadline, the latest saved choice is final and
-   the next question appears automatically. Missing answers score zero, including
-   questions missed while disconnected or away. Each correct answer earns one
-   point; there is no speed bonus. The PDF's “15-minute” heading does not override
-   this requested 10-second-per-question schedule.
+3. Questions have individual timers: **10 seconds** for straightforward recall,
+   **15 seconds** for Q2, Q5, Q8, Q9, Q12 and Q14 (technical or scenario questions),
+   and **20 seconds** for Q13 (hectares-to-km² calculation). Total play time is
+   **190 seconds**, plus the three-second countdown. Durations are set in each
+   question's `seconds` field in `data/quiz_questions.json`.
+   Clicking an option saves and locks the first answer immediately; players
+   cannot choose again, including after refreshing or using another tab.
+   Everyone advances together when that question's timer expires. Missing
+   answers score zero, including questions missed while disconnected or away.
+   Each correct answer earns one point; there is no speed bonus. The PDF's
+   “15-minute” heading does not determine the actual question timers.
 4. After the final deadline, players automatically see their score and an answer
    review. Admin shows every player's final score, leaderboard and answer review;
    while playing, it shows registration and answered-question counts.

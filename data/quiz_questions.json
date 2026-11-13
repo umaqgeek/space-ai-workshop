@@ -9,7 +9,8 @@
     ],
     "answer": 1,
     "explanation": "GIS means Geographic Information System.",
-    "round": 1
+    "round": 1,
+    "seconds": 10
   },
   {
     "question": "What does NDVI mainly measure?",
@@ -21,7 +22,8 @@
     ],
     "answer": 1,
     "explanation": "NDVI indicates vegetation greenness from reflected light.",
-    "round": 1
+    "round": 1,
+    "seconds": 15
   },
   {
     "question": "What is a common unit for inundated area?",
@@ -33,7 +35,8 @@
     ],
     "answer": 2,
     "explanation": "Inundated area is measured in hectares or square kilometres.",
-    "round": 1
+    "round": 1,
+    "seconds": 10
   },
   {
     "question": "Which format can store geographic coordinates and geometry?",
@@ -45,7 +48,8 @@
     ],
     "answer": 0,
     "explanation": "GeoJSON represents geographic features and properties.",
-    "round": 1
+    "round": 1,
+    "seconds": 10
   },
   {
     "question": "In GeoJSON, Point coordinates usually follow which order?",
@@ -57,7 +61,8 @@
     ],
     "answer": 3,
     "explanation": "GeoJSON geographic coordinates use longitude, latitude order.",
-    "round": 1
+    "round": 1,
+    "seconds": 15
   },
   {
     "question": "What does RAG stand for?",
@@ -69,7 +74,8 @@
     ],
     "answer": 1,
     "explanation": "RAG combines retrieval with generation.",
-    "round": 2
+    "round": 2,
+    "seconds": 10
   },
   {
     "question": "What is retrieval used for in SpaceLab?",
@@ -81,7 +87,8 @@
     ],
     "answer": 2,
     "explanation": "It finds records relevant to the question.",
-    "round": 2
+    "round": 2,
+    "seconds": 10
   },
   {
     "question": "Which retrieval method does SpaceLab use?",
@@ -93,7 +100,8 @@
     ],
     "answer": 0,
     "explanation": "SpaceLab uses BM25 with place and topic constraints.",
-    "round": 2
+    "round": 2,
+    "seconds": 15
   },
   {
     "question": "Which SpaceLab mode works without an LLM?",
@@ -105,7 +113,8 @@
     ],
     "answer": 3,
     "explanation": "Offline mode composes excerpts without an LLM.",
-    "round": 2
+    "round": 2,
+    "seconds": 15
   },
   {
     "question": "What is Qwen's role in SpaceLab when configured?",
@@ -117,7 +126,8 @@
     ],
     "answer": 1,
     "explanation": "Qwen drafts answers from retrieved records.",
-    "round": 2
+    "round": 2,
+    "seconds": 10
   },
   {
     "question": "SpaceLab's bundled measurements are what type of data?",
@@ -129,7 +139,8 @@
     ],
     "answer": 2,
     "explanation": "The example measurements are fictional.",
-    "round": 3
+    "round": 3,
+    "seconds": 10
   },
   {
     "question": "No coastal record exists for Shah Alam. What should AI do?",
@@ -141,7 +152,8 @@
     ],
     "answer": 2,
     "explanation": "AI should acknowledge missing evidence.",
-    "round": 3
+    "round": 3,
+    "seconds": 15
   },
   {
     "question": "A synthetic record shows 142 hectares. How much is that in km²?",
@@ -153,7 +165,8 @@
     ],
     "answer": 0,
     "explanation": "100 hectares = 1 km²; the sample is synthetic.",
-    "round": 3
+    "round": 3,
+    "seconds": 20
   },
   {
     "question": "What should you verify in a cited numerical AI answer?",
@@ -165,7 +178,8 @@
     ],
     "answer": 1,
     "explanation": "Match the claimed measurement and unit to its source.",
-    "round": 3
+    "round": 3,
+    "seconds": 15
   },
   {
     "question": "Which description best fits SpaceLab?",
@@ -177,6 +191,7 @@
     ],
     "answer": 2,
     "explanation": "SpaceLab teaches geospatial RAG using synthetic records.",
-    "round": 3
+    "round": 3,
+    "seconds": 10
   }
 ]

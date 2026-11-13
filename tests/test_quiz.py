@@ -72,7 +72,7 @@ class QuizTests(unittest.TestCase):
         self.control('start')
         self.assertEqual(self.request('/api/quiz/register', {'name':'Late Player'})[0], 409)
         self.assertEqual(self.request('/api/admin/quiz', {'action':'start'}, admin=self.admin)[0], 409)
-        self.clock.return_value = 1153
+        self.clock.return_value = 1003 + quiz.TOTAL_SECONDS
         self.assertEqual(self.request('/api/quiz/register', {'name':'Other'}, token=token)[0], 409)
         self.assertEqual(self.request('/api/quiz', token=token)[1]['result']['score'], 0)
         self.control('reset')
@@ -84,6 +84,7 @@ class QuizTests(unittest.TestCase):
         countdown = self.request('/api/quiz', token=token)[1]
         self.assertEqual(countdown['starts_at'], 1003)
         self.assertNotIn('question', countdown)
+        self.assertEqual(self.request('/api/quiz/answer', {'index':0,'selected':1}, token=token)[0], 409)
         self.clock.return_value = 1003
         q = self.request('/api/quiz', token=token)[1]['question']
         self.assertEqual(q['index'], 0)
@@ -92,24 +93,24 @@ class QuizTests(unittest.TestCase):
         self.assertNotIn('explanation', q)
         self.assertEqual(self.request('/api/quiz/answer', {'index':0,'selected':1}, token=token)[0], 200)
         self.clock.return_value = 1012.99
-        self.assertEqual(self.request('/api/quiz/answer', {'index':0,'selected':0}, token=token)[0], 200)
+        self.assertEqual(self.request('/api/quiz/answer', {'index':0,'selected':0}, token=token)[0], 409)
         self.clock.return_value = 1013
         self.assertEqual(self.request('/api/quiz/answer', {'index':0,'selected':1}, token=token)[0], 409)
         self.assertEqual(self.request('/api/quiz', token=token)[1]['question']['index'], 1)
-        self.clock.return_value = 1153
+        self.clock.return_value = 1003 + quiz.TOTAL_SECONDS
         r = self.request('/api/quiz', token=token)[1]['result']
-        self.assertEqual(r['score'], 0)
-        self.assertEqual(r['review'][0]['selected'], 0)
+        self.assertEqual(r['score'], 1)
+        self.assertEqual(r['review'][0]['selected'], 1)
         self.assertIsNone(r['review'][1]['selected'])
         self.assertEqual(self.request('/api/quiz/answer', {'index':14,'selected':2}, token=token)[0], 409)
 
     def test_all_pdf_answers_score_and_admin_results(self):
         token = self.start()
         for i, q in enumerate(quiz.QUESTIONS):
-            self.clock.return_value = 1003 + i * 10
+            self.clock.return_value = 1003 + sum(item['seconds'] for item in quiz.QUESTIONS[:i])
             self.assertEqual(self.request('/api/quiz/answer', {'index':i,'selected':q['answer']}, token=token)[0], 200)
         self.assertNotIn('result', self.request('/api/quiz', token=token)[1])
-        self.clock.return_value = 1153
+        self.clock.return_value = 1003 + quiz.TOTAL_SECONDS
         result = self.request('/api/quiz', token=token)[1]['result']
         self.assertEqual((result['score'], result['total'], result['percentage']), (15,15,100))
         results = self.request('/api/admin/quiz', admin=self.admin)[1]
@@ -122,7 +123,7 @@ class QuizTests(unittest.TestCase):
     def test_visibility_persists_and_does_not_pause_round(self):
         token = self.start()
         self.control('visibility', enabled=False)
-        self.clock.return_value = 1103
+        self.clock.return_value = 1003 + sum(q['seconds'] for q in quiz.QUESTIONS[:10])
         self.assertNotIn('question', self.request('/api/quiz', token=token)[1])
         self.assertEqual(self.request('/api/quiz/answer', {'index':10,'selected':1}, token=token)[0], 409)
         self.control('visibility', enabled=True)
@@ -139,6 +140,45 @@ class QuizTests(unittest.TestCase):
             self.assertEqual(self.request('/api/quiz/answer', {'index':0,'selected':selected}, token=token)[0], 400)
         self.assertEqual(self.request('/api/quiz/answer', {'index':0,'selected':1}, token='fake')[0], 403)
         self.assertEqual(self.request('/api/quiz/answer', {'index':1,'selected':1}, token=token)[0], 409)
+
+    def test_variable_timers_at_exact_boundaries(self):
+        token = self.start()
+        starts = [1003] + [1003 + end for end in quiz.QUESTION_ENDS[:-1]]
+        for i, (q, start) in enumerate(zip(quiz.QUESTIONS, starts)):
+            for timestamp in (start, start + q['seconds'] - 0.001):
+                self.clock.return_value = timestamp
+                state = self.request('/api/quiz', token=token)[1]
+                self.assertEqual(state['phase'], 'running')
+                self.assertEqual(state['question']['index'], i)
+                self.assertEqual(state['question']['seconds'], q['seconds'])
+                self.assertEqual(state['question']['deadline'], start + q['seconds'])
+        self.assertEqual(quiz.QUESTIONS[12]['seconds'], 20)
+        self.assertEqual(quiz.TOTAL_SECONDS, 190)
+        self.clock.return_value = 1003 + quiz.TOTAL_SECONDS
+        self.assertEqual(self.request('/api/quiz', token=token)[1]['phase'], 'finished')
+
+    def test_first_answer_stays_locked_across_requests_and_concurrent_tabs(self):
+        token = self.start()
+        self.clock.return_value = 1003
+        def choose(selected):
+            try:
+                quiz.answer(token, 0, selected)
+                return selected
+            except quiz.QuizConflict:
+                return None
+        with ThreadPoolExecutor(max_workers=4) as pool:
+            choices = list(pool.map(choose, range(4)))
+        winners = [choice for choice in choices if choice is not None]
+        self.assertEqual(len(winners), 1)
+        saved = self.request('/api/quiz', token=token)[1]['question']['selected']
+        self.assertEqual(saved, winners[0])
+        for selected in range(4):
+            status, body = self.request('/api/quiz/answer', {'index':0,'selected':selected}, token=token)
+            self.assertEqual(status, 409)
+            self.assertIn('locked', body['error'])
+        self.assertEqual(self.request('/api/quiz', token=token)[1]['question']['selected'], saved)
+        self.clock.return_value = 1013
+        self.assertEqual(self.request('/api/quiz/answer', {'index':1,'selected':2}, token=token)[0], 200)
 
     def test_concurrent_duplicate_registration_is_atomic(self):
         self.control('visibility', enabled=True)

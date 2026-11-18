@@ -74,6 +74,7 @@ class Request:
             return self.respond(export_records(get_records(), extension), content_type=mime + '; charset=utf-8')
         # Explicit allowlist keeps project source and local files off the web server.
         files = {'/': ROOT / 'frontend/index.html', '/app.js': ROOT / 'frontend/app.js', '/styles.css': ROOT / 'frontend/styles.css', '/quiz.js': ROOT / 'frontend/quiz.js',
+                 '/assets/adl-new-logo.png': ROOT / 'frontend/assets/adl-new-logo.png',
                  '/assets/adl-black.jpeg': ROOT / 'frontend/assets/adl-black.jpeg',
                  '/assets/adl-blue.png': ROOT / 'frontend/assets/adl-blue.png',
                  '/favicon.jpg': ROOT / 'frontend/assets/adl-black.jpeg',

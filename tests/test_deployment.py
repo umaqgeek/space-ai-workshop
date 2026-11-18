@@ -15,6 +15,7 @@ class WsgiTests(unittest.TestCase):
         for path, mime, signature in (
             ('/assets/adl-black.jpeg', 'image/jpeg', b'\xff\xd8\xff'),
             ('/favicon.jpg', 'image/jpeg', b'\xff\xd8\xff'),
+            ('/assets/adl-new-logo.png', 'image/png', b'\x89PNG\r\n\x1a\n'),
             ('/assets/adl-blue.png', 'image/png', b'\x89PNG\r\n\x1a\n'),
             ('/robots.txt', 'text/plain', b'User-agent:'),
             ('/sitemap.xml', 'application/xml', b'<?xml'),

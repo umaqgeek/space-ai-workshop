@@ -1,14 +1,13 @@
 # ADL Space Academy branding
 
-Current logos supplied by the project owner:
+The current owner-supplied logo is `adl-new-logo.png` (1536 × 1024), used
+in the dark sidebar, browser and touch icons, the web manifest, social
+sharing previews and publisher metadata.
 
-- `adl-black.jpeg` (1280 × 1093): white lettering on black, used in the dark
-  navy sidebar and for the legacy `/favicon.jpg` URL.
-- `adl-blue.png` (1024 × 1024): blue lettering, used for browser and touch
-  icons, the web manifest, social sharing previews and publisher metadata.
+Keep the full logo visible with its original proportions. Its white
+lettering is suited to dark UI backgrounds.
 
-Keep the full logo visible with its original proportions. Prefer the white
-lettering version on dark UI backgrounds for contrast.
-
-Assets are served locally. The older `adl-icon.jpg` and `adl-logo.png` files
-are retained in the repository but are no longer used or served by the app.
+Assets are served locally. The previous `adl-black.jpeg` and `adl-blue.png`
+files remain available for existing URLs, including the legacy `/favicon.jpg`.
+The older `adl-icon.jpg` and `adl-logo.png` files are retained in the
+repository but are not served by the app.
